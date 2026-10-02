@@ -15,6 +15,7 @@ Silakan beralih ke *branch* yang sesuai untuk melihat implementasi kode sumber m
 | 3 | **Kurir Directory App** | [`Kurir-Directory-App`](../../tree/Kurir-Directory-App) | Proyek direktori kurir berbasis Android. |
 | 4 | **Logistics Tracker App** | [`LogisticsTrackerApp`](../../tree/LogisticsTrackerApp) | Proyek direktori pencarian id barang dan kurir berbasis Android. |
 | 5 | **Fintech Billing App** | [`FintechBillingApp`](../../tree/FintechBillingApp) | Implementasi tampilan pembayaran berbasis Android. |
+| 6 | **Smart Retail POS** | [`SmartRetailPOS`](../../tree/SmartRetailPOS) | Error handling & Teknik Debugging Aplikasi Mobile. |
 
 ---
 
