@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">LogisticsTrackerApp</string>
+    <string name="title_tracker">Lacak Paketmu \uD83D\uDCE6</string>
+    <string name="desc_tracker">Pantau pengiriman logistik secara real-time</string>
+    <string name="label_resi">Berdasarkan Nomor Resi</string>
+    <string name="hint_resi">Cth: EXP-8801</string>
+    <string name="btn_track">Lacak</string>
+    <string name="label_keyword">Berdasarkan Nama/Kurir</string>
+    <string name="hint_keyword">Cth: Budi</string>
+    <string name="btn_search">Cari</string>
+    <string name="label_courier">Kurir</string>
+    <string name="label_location">Posisi Terakhir</string>
+    <string name="label_recipient">Penerima</string>
+    <string name="label_eta">Estimasi Tiba</string>
+</resources>

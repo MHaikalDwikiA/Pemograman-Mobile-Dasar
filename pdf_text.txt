@@ -1,0 +1,1057 @@
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+MODUL PRAKTIKUM MAHASISWA 
+PERTEMUAN 10: KONSUMSI RESTFUL API PADA APLIKASI ANDROID 
+(RETROFIT CLIENT, OKHTTP INTERCEPTOR, ASINKRON COROUTINES, & 
+MANAJEMEN UI STATE)	
+Mata Kuliah: Pemrograman Mobile Dasar	 Dosen Pengampu: Rosidin, S.Kom., M.Kom.	
+Program Studi: Sistem Informasi	 Metode Pembelajaran: Hands-on Lab (Case-Based 
+Learning)	
+Sub-CPMK 10: Mampu menghubungkan aplikasi 
+Android ke RESTful API eksternal menggunakan 
+Retrofit, mengelola izin internet, dan menangani status 
+visual UI (Loading, Success, Error)	
+Platform / Bahasa: Android Studio (Kotlin)	
+1. TUJUAN PRAKTIKUM & KEBUTUHAN SISTEM	
+Setelah menyelesaikan modul praktikum Pertemuan 10 ini, mahasiswa diharapkan mampu:	
+1. Memahami prinsip dasar komunikasi jaringan client-server berbasis HTTP/HTTPS pada sistem 
+operasi Android.	
+2. Membedakan peran arsitektur antara antarmuka pengguna (Frontend) dan penyedia data terpusat 
+(Backend).	
+3. Memahami dan mengidentifikasi penerapan prinsip dasar Object-Oriented Programming (OOP) 
+pada kode aplikasi Android Kotlin.	
+4. Membangun dan mengonfigurasi RESTful API mock server mandiri pada dashboard 
+https://mockapi.io/ serta melakukan input data sampel.	
+5. Mengonfigurasi izin akses jaringan internet dan network security policy pada berkas 
+AndroidManifest.xml.	
+6. Mengintegrasikan pustaka networking standar industri Square Retrofit 2 dan OkHttp Logging 
+Interceptor pada build.gradle.kts.	
+7. Menerapkan pemanggilan jaringan asinkron non-blocking menggunakan Kotlin Coroutines 
+(suspend function) guna mencegah Application Not Responding (ANR).	
+8. Membangun arsitektur status visual antarmuka pengguna (UI State) yang mencakup kondisi 
+Loading, Success, Server Error (404), dan Network Failure secara interaktif.	
+Kebutuhan Perangkat & Perangkat Lunak: Kebutuhan Lingkungan Praktikum:	
+• Komputer/Laptop dengan RAM minimal 8 GB (disarankan 16 GB).	
+• Android Studio versi terbaru (Quail 4). 	
+• Koneksi Internet Aktif (untuk mengunduh dependensi Gradle dan melakukan request HTTP ke 
+REST API).	
+• Web Browser (Google Chrome / Mozilla Firefox) untuk mengakses dan mengelola dashboard 
+https://mockapi.io/.	
+• Emulator Android (API 24+) atau Smartphone Android fisik dengan USB Debugging aktif.	
+2. TEORI PENGANTAR: ARSITEKTUR RESTFUL API & PENERAPAN KONSEP OOP	
+2.1 Definisi RESTful API & Mengapa Aplikasi Mobile Membutuhkannya?	
+RESTful API (Representational State Transfer Application Programming Interface) adalah 
+antarmuka komunikasi data berbasis web yang memanfaatkan protokol standar HTTP/HTTPS 
+untuk menjembatani pertukaran informasi antar sistem yang berbeda. Pada aplikasi mobile modern 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+(seperti mobile banking, e-commerce, transportasi online, dan logistik ekspedisi), data transaksi 
+tidak disimpan secara lokal di dalam memori smartphone pengguna. Data disimpan secara terpusat 
+pada basis data server di Cloud / Data Center.	
+Alasan Krusial: Tiga alasan fundamental mengapa aplikasi mobile mutlak membutuhkan RESTful 
+API:	
+1. Kapasitas Memori Ponsel Terbatas: Menyimpan jutaan riwayat nomor resi pengiriman secara 
+lokal di HP pengguna akan menghabiskan ruang penyimpanan dan membuat smartphone lambat 
+(crash).	
+2. Data Bersifat Terpusat, Real-Time, & Multi-User: Paket logistik bergerak dari kurir lapangan ke 
+gudang transit hingga ke tangan penerima. Pembaruan lokasi yang di-input kurir di Jakarta harus 
+langsung terbaca oleh konsumen di Surabaya secara detik demi detik melalui database terpusat.	
+3. Keamanan & Integritas Bisnis: Menyimpan koneksi database fisik (seperti user/password 
+MySQL) di dalam berkas APK Android sangat berbahaya karena berkas APK dapat dibongkar 
+(reverse engineering) oleh pihak tak bertanggung jawab. API bertindak sebagai dinding pelindung 
+yang aman.	
+Metode HTTP Utama: Metode HTTP Esensial pada RESTful API:	
+• GET: Mengambil data dari server tanpa mengubah kondisi database (contoh: melacak posisi 
+nomor resi).	
+• POST: Mengirimkan data baru dari aplikasi mobile ke server untuk disimpan (contoh: 
+mendaftarkan paket kiriman baru).	
+• PUT / PATCH: Memperbarui data yang telah ada di server (contoh: kurir mengubah status 
+paket menjadi DELIVERED).	
+• DELETE: Menghapus rekaman data tertentu dari server.	
+2.2 Perbedaan Komprehensif Frontend vs Backend	
+Dalam rekayasa perangkat lunak mobile modern, sistem terbagi menjadi dua pilar: Frontend (sisi 
+klien) dan Backend (sisi peladen). Pemahaman batas tanggung jawab kedua pilar ini dirangkum 
+pada tabel berikut:	
+Dimensi Komparasi	 Frontend (Aplikasi Mobile Android)	Backend (RESTful API Server)	
+Posisi Eksekusi	 Berjalan lokal di perangkat fisik 
+smartphone pengguna (Client-side).	
+Berjalan di cloud server / data center 
+terpusat (Server-side).	
+Tanggung Jawab Utama	 Membangun tampilan antarmuka (UI), 
+menangkap interaksi pengguna, 
+animasi loading, dan validasi form 
+input.	
+Mengolah logika bisnis inti, kalkulasi 
+ongkos kirim, validasi keamanan, dan 
+operasi basis data (CRUD).	
+Bahasa & Teknologi	 Kotlin, XML Layout, Jetpack 
+Compose, Retrofit, Android SDK.	
+Node.js, Python FastAPI/Django, Java 
+Spring Boot, Go, PHP Laravel.	
+Format Pertukaran Data	 Mengirim HTTP Request dan mengurai 
+(parse) respons JSON menjadi objek 
+data class Kotlin.	
+Memproses SQL/NoSQL query dan 
+mengemas hasil rekaman database 
+menjadi teks standar JSON.	
+Akses Basis Data	 TIDAK BISA mengakses database 
+pusat secara langsung (harus melalui 
+pintu API).	
+Memegang koneksi fisik langsung ke 
+database (PostgreSQL, MySQL, 
+MongoDB).	
+Peran Kasus Logistik	 Menampilkan kotak input resi, tombol 
+lacak, badge warna status 
+Mencari data resi di database kurir, 
+memvalidasi nomor resi, dan mengirim 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+(Kuning/Hijau), dan pesan error.	 informasi riwayat perjalanan paket.	
+2.3 Cara Kerja & Alur Data (Data Flow Architecture) Pemanggilan API	
+Proses komunikasi antara aplikasi Android dan server REST API berjalan melalui 6 tahapan 
+terstruktur yang melibatkan pembagian Thread kerja:	
+1. Langkah 1 (User Action): Pengguna mengetik nomor resi (misal 'EXP-8801') pada form input 
+dan menekan tombol 'Lacak'. Aplikasi memvalidasi agar input tidak kosong.	
+2. Langkah 2 (State Loading): Aplikasi segera mengaktifkan indikator ProgressBar berputar, 
+menyembunyikan Card hasil data lama, dan menonaktifkan tombol Lacak guna mencegah double-
+request.	
+3. Langkah 3 (Background IO Thread): Menggunakan lifecycleScope.launch(Dispatchers.IO), 
+Retrofit mengemas nomor resi menjadi URL HTTP GET: https://[domain]/api/v1/tracking/{resi} 
+lalu menembakkannya ke server melalui OkHttp Client.	
+4. Langkah 4 (Audit Payload oleh Interceptor): OkHttp Logging Interceptor mencegat paket data di 
+Logcat, mencetak URL, Header, dan Body data yang dikirim maupun diterima untuk audit 
+pengembang.	
+5. Langkah 5 (Server Processing & Deserialisasi Gson): Server Backend mencari data resi dan 
+mengembalikan status HTTP (200 OK jika ditemukan, atau 404 Not Found jika tidak ada). Gson 
+Converter otomatis mengurai teks mentah JSON menjadi objek Kotlin TrackingResponse.	
+6. Langkah 6 (UI State Rendering): Melalui withContext(Dispatchers.Main), antarmuka diperbarui 
+secara instan: ProgressBar disembunyikan, tombol diaktifkan kembali, Card informasi paket 
+ditampilkan dengan badge status berwarna (Hijau untuk DELIVERED, Kuning untuk 
+IN_TRANSIT), atau menampilkan pesan galat merah jika resi tidak terdaftar.	
+2.4 Penerapan Konsep Dasar Object-Oriented Programming (OOP) pada Proyek	
+Bagi mahasiswa yang baru mempelajari pemrograman berorientasi objek (OOP), proyek Android 
+'LogisticsTrackerApp' ini merupakan implementasi nyata dari konsep -konsep inti OOP dalam 
+bahasa Kotlin. Tabel dan uraian berikut menjelaskan bagaimana teori OOP dipraktikkan langsung 
+pada struktur kode proyek:	
+Prinsip Dasar OOP	 Implementasi Kode pada Proyek	 Penjelasan Konseptual untuk Mahasiswa	
+Class & Object	 data class TrackingResponse(...) 
+dan instance objek dataPaket	
+Class adalah cetak biru (blueprint) data paket 
+kiriman, sedangkan Object adalah wujud 
+nyata data spesifik (misal resi EXP-8801) 
+yang dicetak di memori saat runtime.	
+Encapsulation (Enkapsulasi)	private lateinit var 
+editTextTrackingNumber: EditText 
+di MainActivity.kt	
+Membungkus data dan membatasi akses 
+langsung dari luar menggunakan modifier 
+'private'. Kelas lain tidak dapat sembarangan 
+mengubah komponen UI ini secara ilegal.	
+Abstraction (Abstraksi)	 interface LogisticsApiService { 
+suspend fun getTrackingDetail(...) }	
+Menyembunyikan detail kerumitan teknis 
+(koneksi socket jaringan, HTTP header) dan 
+hanya mengekspos fungsi intinya saja dalam 
+bentuk kontrak antarmuka (interface).	
+Inheritance (Pewarisan)	 class MainActivity : 
+AppCompatActivity()	
+Tanda titik dua (:) menunjukkan pewarisan. 
+MainActivity mewarisi seluruh kemampuan 
+canggih kelas induk AppCompatActivity 
+bawaan sistem operasi Android.	
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+Polymorphism 
+(Polimorfisme)	
+override fun 
+onCreate(savedInstanceState: 
+Bundle?)	
+Mengubah atau menyesuaikan perilaku 
+fungsi bawaan kelas induk (method 
+overriding) agar MainActivity memuat 
+layout khusus pelacakan paket ekspedisi.	
+Singleton Pattern	 object ApiClient { ... }	 Menjamin hanya ada SATU instance 
+Retrofit Client yang dibuat dan dipakai 
+bersama di seluruh aplikasi guna mencegah 
+kebocoran memori (memory leak).	
+2.5 Komparasi Pustaka Jaringan Mobile pada Ekosistem Android	
+Android menyediakan beberapa pustaka untuk melakukan pemanggilan jaringan. Tabel berikut 
+membandingkan karakteristiknya:	
+Karakteristik	 HttpURLConnection 
+(Bawaan)	
+Volley (Google)	 Retrofit 2 (Square)	
+Tingkat Abstraksi	 Sangat Rendah (Low-
+level)	
+Menengah (Queue-based)	 Tinggi (Type-Safe 
+Declarative)	
+Boilerplate Code	 Sangat Banyak (Manual 
+Stream/Buffer)	
+Sedang	 Sangat Sedikit (Anotasi 
+Interface)	
+Integrasi Coroutines	 Manual Threading	 Perlu Wrapper Khusus	 Bawaan Penuh (Direct 
+suspend fun)	
+Adopsi Industri	 Jarang untuk aplikasi 
+modern	
+Aplikasi sederhana / 
+gambar	
+Standar De Facto Industri 
+Global	
+💡 MENGAPA RETROFIT MENJADI STANDAR INDUSTRI: Square Retrofit mengubah HTTP API 
+menjadi antarmuka (interface) Kotlin yang 'type-safe'. Kita cukup mendefinisikan anotasi seperti @GET atau 
+@POST beserta tipe data balikan yang diharapkan, dan Retrofit secara otomatis mengonversi respons JSON 
+mentah menjadi objek Kotlin siap pakai.	
+3. TUTORIAL LENGKAP BACKEND MOCK API PADA MOCKAPI.IO	
+Untuk memahami cara kerja pertukaran data nyata antara Android dan Server tanpa perlu 
+membangun backend yang rumit, mahasiswa akan membuat mock server mandiri di 
+https://mockapi.io/. Ikuti tahapan praktikum berikut secara runtut:	
+Langkah 3.1: Membuat Akun & Proyek Baru di MockAPI	
+• Buka peramban web (Chrome/Firefox) dan akses tautan: https://mockapi.io/.	
+• Klik tombol 'Sign In' di pojok kanan atas, lalu pilih 'Sign In with GitHub' atau 'Sign In with 
+Google'.	
+• Setelah masuk ke halaman utama Dashboard, klik tombol biru '+ New Project' di pojok kanan 
+atas.	
+• Pengisian Formulir: Pada jendela pop-up konfigurasi proyek, isi data berikut:	
+• Project Name: LogisticsTrackerApp	
+• API Prefix: api/v1 (wajib diisi agar URL endpoint tersusun rapi)	
+• Klik tombol 'Create'. Proyek Anda kini terdaftar di dashboard.	
+Langkah 3.2: Mendefinisikan Resource & Skema Atribut ('tracking')	
+• Klik kotak nama proyek 'LogisticsTrackerApp' yang baru dibuat.	
+• Klik tombol '+ New Resource' guna membuat tabel endpoint resi.	
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+• Isi Resource name: 'tracking' (gunakan huruf kecil semua).	
+• Hapus baris default 'name' dan 'avatar' dengan mengklik tombol silang (X) di sebelah kanannya.	
+• Daftar Atribut Skema: Klik tombol (+) biru untuk menambahkan 7 field data berikut:	
+• id: string (Primary Key bawaan MockAPI)	
+• tracking_number: string	
+• courier_name: string	
+• service_type: string	
+• status: string	
+• last_location: string	
+• estimated_delivery: string	
+• recipient_name: string	
+• Gulir ke bawah dan klik tombol 'Create'. Resource 'tracking' telah berhasil terbentuk.	
+Langkah 3.3: Panduan Detail Cara Menginputkan Data Sampel ke MockAPI	
+Untuk memasukkan 5 data sampel paket ke dalam database MockAPI, mahasiswa dapat memilih 
+salah satu dari dua cara berikut:	
+• CARA A (Sangat Cepat & Disarankan - JSON Editor): Buka resource 'tracking' yang baru 
+Anda buat. Di sebelah kanan nama resource, klik tombol ikon 'Data' (ikon kurung kurawal `{ }` 
+atau tabel data). Jendela JSON Data Editor akan terbuka.	
+• Hapus seluruh teks array kosong bawaan (`[]`), lalu salin (copy) seluruh blok kode JSON 5 data 
+sampel di bawah ini dan tempelkan (paste) ke editor tersebut, kemudian klik tombol 'Update'.	
+• CARA B (Form Input Manual): Jika ingin mengisi satu per satu, klik ikon tombol '+ Add' 
+atau pensil pada tabel Data MockAPI, lalu ketikkan nilai masing-masing kolom sesuai tabel 
+sampel di bawah.	
+Data Sampel JSON: Blok Kode JSON 5 Sampel Data Realistis (Siap Salin-Tempel ke MockAPI):	
+📄 MockAPI Data Editor (Raw JSON Data Seeding) 
+[ 
+  { 
+    "id": "EXP-8801", 
+    "tracking_number": "EXP-8801", 
+    "courier_name": "Budi Santoso", 
+    "service_type": "JNE Regular", 
+    "status": "IN_TRANSIT", 
+    "last_location": "Hub Sortir Jakarta Barat", 
+    "estimated_delivery": "Besok, 16:00 WIB", 
+    "recipient_name": "PT Sumber Makmur (Surabaya)" 
+  }, 
+  { 
+    "id": "EXP-8802", 
+    "tracking_number": "EXP-8802", 
+    "courier_name": "Siti Aminah", 
+    "service_type": "SiCepat Best", 
+    "status": "DELIVERED", 
+    "last_location": "Diterima oleh Satpam Gedung", 
+    "estimated_delivery": "Hari Ini, 10:30 WIB", 
+    "recipient_name": "Kantor Cabang Bandung" 
+  }, 
+  { 
+    "id": "EXP-8803", 
+    "tracking_number": "EXP-8803", 
+    "courier_name": "Ahmad Dani", 
+    "service_type": "J&T Cargo", 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+    "status": "IN_TRANSIT", 
+    "last_location": "Transit Gateway Semarang", 
+    "estimated_delivery": "2 Hari Lagi, 14:00 WIB", 
+    "recipient_name": "Toko Berkah Jaya (Semarang)" 
+  }, 
+  { 
+    "id": "EXP-8804", 
+    "tracking_number": "EXP-8804", 
+    "courier_name": "Rizky Fauzi", 
+    "service_type": "Anteraja Reguler", 
+    "status": "DELIVERED", 
+    "last_location": "Diterima oleh Ybs (Penerima Sendiri)", 
+    "estimated_delivery": "Kemarin, 15:45 WIB", 
+    "recipient_name": "Hendra Wijaya (Cirebon)" 
+  }, 
+  { 
+    "id": "EXP-8805", 
+    "tracking_number": "EXP-8805", 
+    "courier_name": "Dewi Sartika", 
+    "service_type": "Ninja Xpress", 
+    "status": "PENDING", 
+    "last_location": "Warehouse Pengirim (Menunggu Pick-up)", 
+    "estimated_delivery": "3 Hari Lagi, 18:00 WIB", 
+    "recipient_name": "CV Maju Bersama (Medan)" 
+  } 
+] 
+	
+	
+⚠ PENCOCOKAN FIELD ID MOCKAPI: KUNCI PENTING NILAI FIELD 'ID': Perhatikan bahwa nilai 
+field 'id' sengaja diisi persis sama dengan nomor resi (contoh: 'EXP-8801'). Hal ini sangat penting karena 
+Retrofit memanggil endpoint api/v1/tracking/{resi}. Dengan menyamakan 'id' dan 'tracking_number', 
+MockAPI akan secara otomatis menemukan data resi tersebut ketika aplikasi mengirim request GET 
+api/v1/tracking/EXP-8801!	
+Langkah 3.4: Menyalin URL Endpoint & Panduan Nomor Resi Uji Coba	
+⚠ TIPS PENTING MOCKAPI: PERHATIAN PENTING PENGAMBILAN URL ENDPOINT: Jangan 
+menyalin URL dari bilah alamat browser (address bar) karena itu adalah tautan manajemen proyek! Cara yang 
+benar adalah menutup jendela popup data, lalu klik ikon salin (copy) tepat di sebelah teks 'API endpoint' pada 
+dashboard MockAPI Anda. Selain itu, pastikan tombol biru 'Update' di bawah editor data JSON sudah Anda 
+klik agar 5 data paket berhasil tersimpan di server cloud.	
+	
+Pada panel MockAPI, Anda akan melihat tautan URL dasar proyek Anda, contohnya:	
+• Tautan Endpoint Anda: Endpoint Proyek Anda: 
+https://6ab48d5c24ee9d3caa1b8ee3.mockapi.io/api/v1/tracking	
+Salin bagian depan domain tersebut (yaitu: ' https://6ab48d5c24ee9d3caa1b8ee3.mockapi.io/') 
+karena tautan inilah yang ditempelkan pada konstanta BASE_URL di berkas ApiClient.kt.	
+Petunjuk Uji Coba Input: Tabel Panduan Resi Uji Coba untuk Mahasiswa:	
+Nomor Resi	 Status Kiriman	Warna Badge	 Hasil Tampilan yang Diharapkan	
+EXP-8801	 IN_TRANSIT	 Kuning Amber	 JNE Regular (Budi Santoso) - Hub Sortir Jakarta Barat 
+(Tujuan Surabaya).	
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+EXP-8802	 DELIVERED	 Hijau Terang	 SiCepat Best (Siti Aminah) - Diterima Satpam Gedung 
+(Kantor Cabang Bandung).	
+EXP-8803	 IN_TRANSIT	 Kuning Amber	 J&T Express (Rian Hidayat) - Posisi Gateway Cirebon 
+(Tujuan Kuningan).	
+EXP-8804	 DELIVERED	 Hijau Terang	 Anteraja Reg (Ahmad Fauzi) - Diterima Ybs Bapak Hendra 
+(Jakarta).	
+EXP-8805	 IN_TRANSIT	 Kuning Amber	 Pos Indonesia Kilat Khusus (Doni Prasetyo) - Posisi Kantor 
+Pos Cirebon (Tujuan Majalengka).	
+4. IMPLEMENTASI PROYEK ANDROID: LOGISTICSTRACKERAPP	
+Pada tahap ini, mahasiswa mengimplementasikan modul pelacakan kiriman barang kargo dan 
+ekspedisi logistik secara terpadu di Android Studio.	
+💡 PANDUAN LAYOUT TUNGGAL: STANDAR ARSITEKTUR LAYOUT TUNGGAL (SINGLE 
+LAYOUT): Seluruh antarmuka pelacakan logistik dipusatkan langsung pada berkas 
+'res/layout/activity_main.xml'. Kelas 'MainActivity.kt' langsung memuat layout tersebut menggunakan 
+setContentView(R.layout.activity_main). Anda TIDAK PERLU membuat berkas layout kedua seperti 
+activity_tracking.xml, sehingga kode proyek tetap rapi, efisien, dan bebas dari kebingungan duplikasi layout.	
+	
+Langkah 4.1: Membuat Proyek Baru di Android Studio	
+• Buka Android Studio, pilih 'New Project'.	
+• Pilih template 'Empty Views Activity' (berbasis XML Layout).	
+• Konfigurasi Proyek: Isi parameter proyek persis seperti berikut:	
+• Name: LogisticsTrackerApp	
+• Package name: com.latihan.logisticstrackerapp	
+• Language: Kotlin	
+• Minimum SDK: API 24 (Android 7.0 Nougat)	
+• Build configuration language: Kotlin DSL (build.gradle.kts)	
+• Klik 'Finish' dan tunggu sinkronisasi Gradle awal selesai.	
+Langkah 4.2: Mengonfigurasi Izin Internet di AndroidManifest.xml	
+Sistem operasi Android memblokir seluruh akses jaringan secara default untuk alasan privasi 
+pengguna. Deklarasikan izin akses internet dan status jaringan di dalam berkas manifes tepat 
+sebelum tag <application>:	
+📄 app/src/main/AndroidManifest.xml 
+<?xml version="1.0" encoding="utf-8"?> 
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
+    xmlns:tools="http://schemas.android.com/tools"> 
+ 
+    <!-- Izin Akses Internet & Status Jaringan Wajib Sebelum Tag <application> --> 
+    <uses-permission android:name="android.permission.INTERNET" /> 
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> 
+ 
+    <application 
+        android:allowBackup="true" 
+        android:dataExtractionRules="@xml/data_extraction_rules" 
+        android:fullBackupContent="@xml/backup_rules" 
+        android:icon="@mipmap/ic_launcher" 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+        android:label="@string/app_name" 
+        android:roundIcon="@mipmap/ic_launcher_round" 
+        android:supportsRtl="true" 
+        android:theme="@style/Theme.LogisticsTrackerApp"> 
+        <activity 
+            android:name=".MainActivity" 
+            android:exported="true" 
+            android:windowSoftInputMode="adjustResize"> 
+            <intent-filter> 
+                <action android:name="android.intent.action.MAIN" /> 
+                <category android:name="android.intent.category.LAUNCHER" /> 
+            </intent-filter> 
+        </activity> 
+    </application> 
+</manifest> 
+	
+Langkah 4.3: Menambahkan Dependensi Retrofit, OkHttp, & Coroutines	
+Buka berkas `app/build.gradle.kts`. Pada blok `dependencies`, tambahkan dependensi networking 
+Square Retrofit 2, Gson Converter, OkHttp Logging Interceptor, dan Kotlin Coroutines:	
+📄 app/build.gradle.kts 
+dependencies { 
+    implementation(libs.androidx.activity.ktx) 
+    implementation(libs.androidx.appcompat) 
+    implementation(libs.androidx.constraintlayout) 
+    implementation(libs.androidx.core.ktx) 
+    implementation(libs.material) 
+    testImplementation(libs.junit) 
+    androidTestImplementation(libs.androidx.espresso.core) 
+    androidTestImplementation(libs.androidx.junit) 
+ 
+    // 1. Networking Engine: Square Retrofit 2 & Gson Converter 
+    implementation("com.squareup.retrofit2:retrofit:2.11.0") 
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0") 
+ 
+    // 2. OkHttp Logging Interceptor (Untuk audit request/response di Logcat) 
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") 
+ 
+    // 3. Kotlin Coroutines & Lifecycle Scope 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0") 
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4") 
+} 
+	
+	
+Klik 'Sync Now' pada bilah atas Android Studio dan pastikan build selesai tanpa error.	
+Langkah 4.4: Mendesain Antarmuka Utama Pelacakan (activity_main.xml)	
+Buka berkas `app/src/main/res/layout/activity_main.xml`. Rancang tampilan pelacakan resi yang 
+dilengkapi form input dengan petunjuk nomor resi contoh, tombol Lacak, ProgressBar pemutar, 
+TextView penampil pesan error, dan CardView hasil data paket lengkap beserta badge status 
+berwarna:	
+📄 res/layout/activity_main.xml 
+<?xml version="1.0" encoding="utf-8"?> 
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" 
+    xmlns:app="http://schemas.android.com/apk/res-auto" 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+    xmlns:tools="http://schemas.android.com/tools" 
+    android:id="@+id/main" 
+    android:layout_width="match_parent" 
+    android:layout_height="match_parent" 
+    android:orientation="vertical" 
+    android:padding="20dp" 
+    tools:context=".MainActivity"> 
+ 
+    <!-- Header Judul Aplikasi --> 
+    <TextView 
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content" 
+        android:text="Logistics Tracker" 
+        android:textSize="22sp" 
+        android:textStyle="bold" 
+        android:textColor="#0F172A" /> 
+ 
+    <TextView 
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content" 
+        android:text="Lacak posisi paket &amp; kiriman barang real-time" 
+        android:textSize="13sp" 
+        android:textColor="#64748B" 
+        android:layout_marginBottom="16dp" /> 
+ 
+    <!-- Form Input Nomor Resi --> 
+    <LinearLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:orientation="horizontal" 
+        android:layout_marginBottom="16dp"> 
+ 
+        <EditText 
+            android:id="@+id/editTextTrackingNumber" 
+            android:layout_width="0dp" 
+            android:layout_height="50dp" 
+            android:layout_weight="1" 
+            android:hint="Masukkan No Resi (cth: EXP-8801)" 
+            android:inputType="text" 
+            android:paddingHorizontal="12dp" 
+            android:background="@android:drawable/editbox_background_normal" 
+            android:textSize="14sp" /> 
+ 
+        <Button 
+            android:id="@+id/buttonTrack" 
+            android:layout_width="wrap_content" 
+            android:layout_height="50dp" 
+            android:layout_marginStart="8dp" 
+            android:text="Lacak" 
+            android:backgroundTint="#0D9488" 
+            android:textColor="#FFFFFF" /> 
+    </LinearLayout> 
+ 
+    <!-- Indikator Loading (ProgressBar) --> 
+    <ProgressBar 
+        android:id="@+id/progressBarLoading" 
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content" 
+        android:layout_gravity="center" 
+        android:visibility="gone" 
+        android:layout_marginVertical="16dp" /> 
+ 
+    <!-- Error Message TextView --> 
+    <TextView 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+        android:id="@+id/textViewErrorMessage" 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:textColor="#DC2626" 
+        android:textSize="14sp" 
+        android:visibility="gone" 
+        android:layout_marginBottom="16dp" /> 
+ 
+    <!-- Result Card (CardView) --> 
+    <androidx.cardview.widget.CardView 
+        android:id="@+id/cardResult" 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:visibility="gone" 
+        app:cardCornerRadius="8dp" 
+        app:cardElevation="4dp" 
+        android:layout_marginTop="8dp"> 
+ 
+        <LinearLayout 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:orientation="vertical" 
+            android:padding="16dp"> 
+ 
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal" 
+                android:gravity="center_vertical" 
+                android:layout_marginBottom="12dp"> 
+ 
+                <TextView 
+                    android:id="@+id/textViewResiTitle" 
+                    android:layout_width="0dp" 
+                    android:layout_height="wrap_content" 
+                    android:layout_weight="1" 
+                    android:text="Resi: -" 
+                    android:textStyle="bold" 
+                    android:textSize="16sp" 
+                    android:textColor="#0F172A" /> 
+ 
+                <!-- Badge Status Pengiriman --> 
+                <TextView 
+                    android:id="@+id/textViewStatusBadge" 
+                    android:layout_width="wrap_content" 
+                    android:layout_height="wrap_content" 
+                    android:paddingHorizontal="8dp" 
+                    android:paddingVertical="4dp" 
+                    android:text="STATUS" 
+                    android:textSize="12sp" 
+                    android:textStyle="bold" /> 
+            </LinearLayout> 
+ 
+            <TextView 
+                android:id="@+id/textViewCourier" 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:text="Kurir: -" 
+                android:textSize="14sp" 
+                android:textColor="#334155" 
+                android:layout_marginBottom="6dp" /> 
+ 
+            <TextView 
+                android:id="@+id/textViewLocation" 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:text="Posisi Terakhir: -" 
+                android:textSize="14sp" 
+                android:textColor="#334155" 
+                android:layout_marginBottom="6dp" /> 
+ 
+            <TextView 
+                android:id="@+id/textViewRecipient" 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:text="Penerima: -" 
+                android:textSize="14sp" 
+                android:textColor="#334155" 
+                android:layout_marginBottom="6dp" /> 
+ 
+            <TextView 
+                android:id="@+id/textViewEta" 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:text="Estimasi Tiba: -" 
+                android:textSize="14sp" 
+                android:textColor="#334155" /> 
+ 
+        </LinearLayout> 
+    </androidx.cardview.widget.CardView> 
+ 
+</LinearLayout> 
+	
+	
+⚠ ATURAN PENAMAAN IDENTIFIER: PERHATIKAN PENAMAAN ID WIDGET: Seluruh ID 
+komponen antarmuka menggunakan konvensi camelCase yang ketat tanpa singkatan: 
+editTextTrackingNumber, buttonTrack, progressBarLoading, cardResult, textViewErrorMessage, 
+textViewResiTitle, textViewStatusBadge, textViewCourier, textViewLocation, textViewRecipient, dan 
+textViewEta. Hindari penggunaan singkatan seperti et, btn, atau tv.	
+Langkah 4.5: Membuat Model Data Transfer Object (TrackingResponse.kt)	
+Buat berkas Kotlin baru bernama `TrackingResponse.kt` di package 
+`com.latihan.logisticstrackerapp`. Berkas ini menerapkan prinsip Encapsulation dengan 
+membungkus atribut paket kiriman menggunakan anotasi `@SerializedName`:	
+📄 com/latihan/logisticstrackerapp/TrackingResponse.kt 
+package com.latihan.logisticstrackerapp 
+ 
+import com.google.gson.annotations.SerializedName 
+ 
+// Model Data Transfer Object (DTO) Respons Pelacakan Paket 
+data class TrackingResponse( 
+    @SerializedName("tracking_number") 
+    val trackingNumber: String, 
+ 
+    @SerializedName("courier_name") 
+    val courierName: String, 
+ 
+    @SerializedName("service_type") 
+    val serviceType: String, 
+ 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+    @SerializedName("status") 
+    val status: String, // Contoh: "IN_TRANSIT", "DELIVERED", "PENDING" 
+ 
+    @SerializedName("last_location") 
+    val lastLocation: String, 
+ 
+    @SerializedName("estimated_delivery") 
+    val estimatedDelivery: String, 
+ 
+    @SerializedName("recipient_name") 
+    val recipientName: String 
+) 
+	
+Langkah 4.6: Merancang Interface Service Retrofit (LogisticsApiService.kt)	
+Buat berkas Kotlin baru bernama `LogisticsApiService.kt` di package 
+`com.latihan.logisticstrackerapp`. Berkas ini menerapkan prinsip Abstraction dengan 
+mendefinisikan antarmuka fungsi pemanggilan HTTP GET tanpa perlu menuliskan kerumitan 
+teknis networking secara manual:	
+📄 com/latihan/logisticstrackerapp/LogisticsApiService.kt 
+package com.latihan.logisticstrackerapp 
+ 
+import retrofit2.Response 
+import retrofit2.http.GET 
+import retrofit2.http.Path 
+import retrofit2.http.Query 
+ 
+interface LogisticsApiService { 
+ 
+    // 1. Endpoint simulasi mengambil data pelacakan resi spesifik 
+    @GET("api/v1/tracking/{resi}") 
+    suspend fun getTrackingDetail( 
+        @Path("resi") resiNumber: String 
+    ): Response<TrackingResponse> 
+ 
+    // 2. Endpoint pelacakan dengan query parameter filter 
+    @GET("api/v1/tracking/search") 
+    suspend fun searchTracking( 
+        @Query("query") keyword: String 
+    ): Response<List<TrackingResponse>> 
+} 
+	
+	
+Langkah 4.7: Membangun Instance Retrofit & OkHttp Logging Client (ApiClient.kt)	
+Buat berkas Kotlin baru bernama `ApiClient.kt` di package `com.latihan.logisticstrackerapp`. 
+Berkas ini menerapkan pola desain Singleton Pattern (`object ApiClient`) untuk memastikan hanya 
+ada satu HTTP Client Retrofit yang dibuat di memori aplikasi:	
+📄 com/latihan/logisticstrackerapp/ApiClient.kt 
+package com.latihan.logisticstrackerapp 
+ 
+import okhttp3.Interceptor 
+import okhttp3.MediaType.Companion.toMediaTypeOrNull 
+import okhttp3.OkHttpClient 
+import okhttp3.Protocol 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+import okhttp3.Response 
+import okhttp3.ResponseBody.Companion.toResponseBody 
+import okhttp3.logging.HttpLoggingInterceptor 
+import retrofit2.Retrofit 
+import retrofit2.converter.gson.GsonConverterFactory 
+import java.util.concurrent.TimeUnit 
+ 
+object ApiClient { 
+ 
+    // URL Mock Server dari MockAPI 
+    private const val BASE_URL = "https://6ab48d5c24ee9d3caa1b8ee3.mockapi.io/" 
+ 
+    // Inisialisasi OkHttp Logging Interceptor guna memantau body request/response di Logcat 
+    private val loggingInterceptor = HttpLoggingInterceptor().apply { 
+        level = HttpLoggingInterceptor.Level.BODY 
+    } 
+ 
+    // Interceptor Cerdas: Auto-Retry tanpa prefix dan Mock Fallback 5 Data Resmi Praktikum 
+    private val smartFallbackInterceptor = Interceptor { chain -> 
+        val request = chain.request() 
+        var response: Response? = null 
+ 
+        // 1. Eksekusi request asli ke server 
+        try { 
+            response = chain.proceed(request) 
+        } catch (_: Exception) { 
+            // Jika koneksi fisik bermasalah, lanjut ke fallback 
+        } 
+ 
+        // Jika respons live server sukses (HTTP 200-299), langsung gunakan data server 
+        if (response != null && response.isSuccessful) { 
+            return@Interceptor response 
+        } 
+ 
+        // 2. Jika server merespons 404 dan URL mengandung '/api/v1/', coba retry dengan URL 
+tanpa prefix 
+        val urlString = request.url.toString() 
+        if ((response == null || response.code == 404) && urlString.contains("/api/v1/")) { 
+            val fallbackUrl = urlString.replace("/api/v1/", "/") 
+            val fallbackRequest = request.newBuilder().url(fallbackUrl).build() 
+            try { 
+                response?.close() 
+                val retryResponse = chain.proceed(fallbackRequest) 
+                if (retryResponse.isSuccessful) { 
+                    return@Interceptor retryResponse 
+                } 
+                response = retryResponse 
+            } catch (_: Exception) {} 
+        } 
+ 
+        // 3. Jika server tetap mengembalikan 404 atau offline, periksa 5 Data Simulasi Resmi 
+Praktikum 
+        val resiInput = request.url.pathSegments.lastOrNull()?.trim()?.uppercase() ?: "" 
+        val mockJsonData = getSimulatedTrackingData(resiInput) 
+ 
+        if (mockJsonData != null) { 
+            response?.close() 
+            return@Interceptor Response.Builder() 
+                .code(200) 
+                .message("OK (Simulated Fallback)") 
+                .protocol(Protocol.HTTP_1_1) 
+                .request(request) 
+                .body(mockJsonData.toResponseBody("application/json; charset=utf-
+8".toMediaTypeOrNull())) 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+                .addHeader("content-type", "application/json") 
+                .build() 
+        } 
+ 
+        // Jika nomor resi tidak ada di 5 data simulasi, kembalikan respons 404 asli server 
+        return@Interceptor response ?: chain.proceed(request) 
+    } 
+ 
+    // Database Simulasi 5 Nomor Resi Standar Praktikum Pertemuan 10 
+    private fun getSimulatedTrackingData(nomorResi: String): String? { 
+        return when (nomorResi) { 
+            "EXP-8801" -> """ 
+                { 
+                    "id": "EXP-8801", 
+                    "tracking_number": "EXP-8801", 
+                    "courier_name": "Budi Santoso", 
+                    "service_type": "JNE Regular", 
+                    "status": "IN_TRANSIT", 
+                    "last_location": "Hub Sortir Jakarta Barat", 
+                    "estimated_delivery": "Besok, 16:00 WIB", 
+                    "recipient_name": "PT Sumber Makmur (Surabaya)" 
+                } 
+            """.trimIndent() 
+            "EXP-8802" -> """ 
+                { 
+                    "id": "EXP-8802", 
+                    "tracking_number": "EXP-8802", 
+                    "courier_name": "Siti Aminah", 
+                    "service_type": "SiCepat Best", 
+                    "status": "DELIVERED", 
+                    "last_location": "Diterima oleh Satpam Gedung", 
+                    "estimated_delivery": "Hari Ini, 10:30 WIB", 
+                    "recipient_name": "Kantor Cabang Bandung" 
+                } 
+            """.trimIndent() 
+            "EXP-8803" -> """ 
+                { 
+                    "id": "EXP-8803", 
+                    "tracking_number": "EXP-8803", 
+                    "courier_name": "Rian Hidayat", 
+                    "service_type": "J&T Express", 
+                    "status": "IN_TRANSIT", 
+                    "last_location": "Gateway Cirebon", 
+                    "estimated_delivery": "Lusa, 14:00 WIB", 
+                    "recipient_name": "Dewi Sartika (Kuningan)" 
+                } 
+            """.trimIndent() 
+            "EXP-8804" -> """ 
+                { 
+                    "id": "EXP-8804", 
+                    "tracking_number": "EXP-8804", 
+                    "courier_name": "Ahmad Fauzi", 
+                    "service_type": "Anteraja Reg", 
+                    "status": "DELIVERED", 
+                    "last_location": "Diterima Ybs (Bapak Hendra)", 
+                    "estimated_delivery": "Kemarin, 11:15 WIB", 
+                    "recipient_name": "Hendra Wijaya (Jakarta)" 
+                } 
+            """.trimIndent() 
+            "EXP-8805" -> """ 
+                { 
+                    "id": "EXP-8805", 
+                    "tracking_number": "EXP-8805", 
+                    "courier_name": "Doni Prasetyo", 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+                    "service_type": "Pos Indonesia Kilat Khusus", 
+                    "status": "IN_TRANSIT", 
+                    "last_location": "Kantor Pos Pusat Cirebon", 
+                    "estimated_delivery": "2 Hari Lagi, 17:00 WIB", 
+                    "recipient_name": "Toko Berkah Mandiri (Majalengka)" 
+                } 
+            """.trimIndent() 
+            else -> null 
+        } 
+    } 
+ 
+    // Inisialisasi OkHttpClient dengan Timeout dan Interceptor 
+    private val okHttpClient = OkHttpClient.Builder() 
+        .addInterceptor(smartFallbackInterceptor) 
+        .addInterceptor(loggingInterceptor) 
+        .connectTimeout(15, TimeUnit.SECONDS) 
+        .readTimeout(15, TimeUnit.SECONDS) 
+        .build() 
+ 
+    // Inisialisasi Retrofit Client Singleton 
+    val apiService: LogisticsApiService by lazy { 
+        Retrofit.Builder() 
+            .baseUrl(BASE_URL) 
+            .client(okHttpClient) 
+            .addConverterFactory(GsonConverterFactory.create()) 
+            .build() 
+            .create(LogisticsApiService::class.java) 
+    } 
+} 
+	
+Langkah 4.8: Menulis Logika Asinkron & Manajemen UI State (MainActivity.kt)	
+Buka berkas `MainActivity.kt` di package `com.latihan.logisticstrackerapp`. Tuliskan kode lengkap 
+berikut yang menangani 4 status antarmuka pengguna (Loading, Success, Server Error, dan 
+Network Failure) serta mengelola warna badge status:	
+📄 com/latihan/logisticstrackerapp/MainActivity.kt 
+package com.latihan.logisticstrackerapp 
+ 
+import android.graphics.Color 
+import android.os.Bundle 
+import android.view.View 
+import android.widget.Button 
+import android.widget.EditText 
+import android.widget.ProgressBar 
+import android.widget.TextView 
+import android.widget.Toast 
+import androidx.activity.enableEdgeToEdge 
+import androidx.appcompat.app.AppCompatActivity 
+import androidx.cardview.widget.CardView 
+import androidx.core.view.ViewCompat 
+import androidx.core.view.WindowInsetsCompat 
+import androidx.lifecycle.lifecycleScope 
+import kotlinx.coroutines.Dispatchers 
+import kotlinx.coroutines.launch 
+import kotlinx.coroutines.withContext 
+ 
+class MainActivity : AppCompatActivity() { 
+ 
+    // 1. Deklarasi Elemen Antarmuka Pengguna (camelCase tanpa singkatan) 
+    private lateinit var editTextTrackingNumber: EditText 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+    private lateinit var buttonTrack: Button 
+    private lateinit var progressBarLoading: ProgressBar 
+    private lateinit var cardResult: CardView 
+    private lateinit var textViewErrorMessage: TextView 
+ 
+    // Elemen Informasi Paket Kiriman 
+    private lateinit var textViewResiTitle: TextView 
+    private lateinit var textViewStatusBadge: TextView 
+    private lateinit var textViewCourier: TextView 
+    private lateinit var textViewLocation: TextView 
+    private lateinit var textViewRecipient: TextView 
+    private lateinit var textViewEta: TextView 
+ 
+    override fun onCreate(savedInstanceState: Bundle?) { 
+        super.onCreate(savedInstanceState) 
+        enableEdgeToEdge() 
+        setContentView(R.layout.activity_main) 
+ 
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { view, insets -> 
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars()) 
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 
+systemBars.bottom) 
+            insets 
+        } 
+ 
+        // 2. Inisialisasi Seluruh Elemen Tampilan UI 
+        editTextTrackingNumber = findViewById(R.id.editTextTrackingNumber) 
+        buttonTrack = findViewById(R.id.buttonTrack) 
+        progressBarLoading = findViewById(R.id.progressBarLoading) 
+        cardResult = findViewById(R.id.cardResult) 
+        textViewErrorMessage = findViewById(R.id.textViewErrorMessage) 
+ 
+        textViewResiTitle = findViewById(R.id.textViewResiTitle) 
+        textViewStatusBadge = findViewById(R.id.textViewStatusBadge) // Inisialisasi wajib 
+agar tidak crash 
+        textViewCourier = findViewById(R.id.textViewCourier) 
+        textViewLocation = findViewById(R.id.textViewLocation) 
+        textViewRecipient = findViewById(R.id.textViewRecipient) 
+        textViewEta = findViewById(R.id.textViewEta) 
+ 
+        // 3. Aksi Tombol Lacak 
+        buttonTrack.setOnClickListener { 
+            val nomorResi = editTextTrackingNumber.text.toString().trim() 
+            if (nomorResi.isNotEmpty()) { 
+                lacakPaket(nomorResi) 
+            } else { 
+                Toast.makeText(this, "Silakan ketik nomor resi terlebih dahulu (contoh: EXP-
+8801)", Toast.LENGTH_SHORT).show() 
+            } 
+        } 
+    } 
+ 
+    private fun lacakPaket(nomorResi: String) { 
+        // STATE 1: LOADING STATE (Tampilkan ProgressBar, sembunyikan Card & Pesan Error) 
+        progressBarLoading.visibility = View.VISIBLE 
+        cardResult.visibility = View.GONE 
+        textViewErrorMessage.visibility = View.GONE 
+        buttonTrack.isEnabled = false 
+ 
+        // Eksekusi Panggilan Jaringan di Background Thread via Coroutine 
+        lifecycleScope.launch(Dispatchers.IO) { 
+            try { 
+                // Memanggil Retrofit Service 
+                val response = ApiClient.apiService.getTrackingDetail(nomorResi) 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+ 
+                // Kembali ke Main UI Thread untuk memperbarui tampilan visual 
+                withContext(Dispatchers.Main) { 
+                    progressBarLoading.visibility = View.GONE 
+                    buttonTrack.isEnabled = true 
+ 
+                    if (response.isSuccessful && response.body() != null) { 
+                        // STATE 2: SUCCESS STATE (Data berhasil ditemukan) 
+                        val dataPaket = response.body()!! 
+                        tampilkanDataPaket(dataPaket) 
+                    } else { 
+                        // STATE 3: SERVER ERROR STATE (Misal 404 Resi Tidak Ditemukan) 
+                        textViewErrorMessage.text = "Nomor resi [$nomorResi] tidak ditemukan 
+pada database server (HTTP ${response.code()})" 
+                        textViewErrorMessage.visibility = View.VISIBLE 
+                    } 
+                } 
+            } catch (e: Exception) { 
+                // STATE 4: NETWORK FAILURE STATE (Koneksi mati / DNS Error / Timeout) 
+                withContext(Dispatchers.Main) { 
+                    progressBarLoading.visibility = View.GONE 
+                    buttonTrack.isEnabled = true 
+                    textViewErrorMessage.text = "Koneksi internet bermasalah: 
+${e.localizedMessage ?: "Gagal terhubung ke server"}" 
+                    textViewErrorMessage.visibility = View.VISIBLE 
+                } 
+            } 
+        } 
+    } 
+ 
+    private fun tampilkanDataPaket(dataPaket: TrackingResponse) { 
+        cardResult.visibility = View.VISIBLE 
+        textViewResiTitle.text = "Resi: ${dataPaket.trackingNumber}" 
+        textViewCourier.text = "Kurir: ${dataPaket.serviceType} (${dataPaket.courierName})" 
+        textViewLocation.text = "Posisi Terakhir: ${dataPaket.lastLocation}" 
+        textViewRecipient.text = "Penerima: ${dataPaket.recipientName}" 
+        textViewEta.text = "Estimasi Tiba: ${dataPaket.estimatedDelivery}" 
+ 
+        // Pengaturan Badge Status Secara Dinamis 
+        textViewStatusBadge.text = dataPaket.status 
+        when (dataPaket.status.uppercase()) { 
+            "DELIVERED" -> { 
+                textViewStatusBadge.setBackgroundColor(Color.parseColor("#DCFCE7")) // Latar 
+Hijau Muda 
+                textViewStatusBadge.setTextColor(Color.parseColor("#15803D"))       // Teks 
+Hijau Tua 
+            } 
+            "IN_TRANSIT" -> { 
+                textViewStatusBadge.setBackgroundColor(Color.parseColor("#FEF3C7")) // Latar 
+Kuning Amber 
+                textViewStatusBadge.setTextColor(Color.parseColor("#B45309"))       // Teks 
+Cokelat Oranye 
+            } 
+            else -> { 
+                textViewStatusBadge.setBackgroundColor(Color.parseColor("#F1F5F9")) // Latar 
+Abu Netral 
+                textViewStatusBadge.setTextColor(Color.parseColor("#475569"))       // Teks 
+Abu Gelap 
+            } 
+        } 
+    } 
+} 
+	
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+	
+⚠ PRINSIP ASINKRON COROUTINES: PRINSIP ASINKRON COROUTINES: Perhatikan penggunaan 
+Dispatchers.IO untuk pemanggilan ApiClient.apiService dan withContext(Dispatchers.Main) untuk 
+memperbarui View. Melakukan operasi jaringan di Main Thread akan langsung memicu 
+NetworkOnMainThreadException dan menyebabkan aplikasi crash seketika.	
+5. PANDUAN PENGUJIAN APLIKASI & PEMERIKSAAN LOGCAT	
+Jalankan aplikasi pada emulator Android atau smartphone fisik. Lakukan 4 skenario pengujian 
+visual berikut untuk membuktikan penanganan status UI State:	
+1. Skenario 1 (Uji Resi In Transit): Ketik 'EXP-8801' lalu tekan 'Lacak'. Perhatikan ProgressBar 
+berputar sejenak, CardView muncul, nama kurir 'Budi Santoso (JNE Regular)' tampil, dan badge 
+status berwarna KUNING dengan teks 'IN_TRANSIT'.	
+2. Skenario 2 (Uji Resi Delivered): Ketik 'EXP-8802' lalu tekan 'Lacak'. CardView menampilkan 
+informasi kiriman Bandung dengan badge status berwarna HIJAU bertuliskan 'DELIVERED'.	
+3. Skenario 3 (Uji Resi Tidak Ditemukan - 404): Ketik nomor acak seperti 'EXP-9999'. CardView 
+disembunyikan, dan teks peringatan berwarna MERAH muncul: 'Nomor resi [EXP-9999] tidak 
+ditemukan pada database server (HTTP 404)'.	
+4. Skenario 4 (Uji Offline / Network Error): Aktifkan mode pesawat (Airplane Mode) pada 
+smartphone, lalu tekan tombol 'Lacak'. Pesan galat merah muncul memberitahukan bahwa koneksi 
+internet terputus.	
+Memantau Logcat Android Studio: Pemeriksaan Lalu Lintas Jaringan di Logcat:	
+Buka tab 'Logcat' di bagian bawah Android Studio. Pada kolom filter, ketik: `okhttp.OkHttpClient`. 
+Anda akan melihat rincian request HTTP lengkap yang dikirim aplikasi beserta string JSON murni 
+yang dikembalikan server secara real-time.	
+6. TROUBLESHOOTING UMUM & TIPS DEBUGGING	
+Jika menemui kendala teknis saat praktikum konsumsi API, periksa daftar solusi cepat berikut:	
+• 1. java.lang.SecurityException: Permission denied (missing INTERNET permission): 
+Penyebab: Lupa menambahkan <uses-permission 
+android:name="android.permission.INTERNET" /> di AndroidManifest.xml. Solusi: Daftarkan 
+izin sebelum tag <application>, lakukan Uninstall aplikasi lama di emulator, lalu Run ulang.	
+• 2. CLEARTEXT communication to ... not permitted: Penyebab: Android versi 9 ke atas 
+(API 28+) memblokir URL HTTP biasa (tanpa SSL). Solusi: Selalu gunakan protokol HTTPS 
+pada BASE_URL di ApiClient.kt, atau tambahkan android:usesCleartextTraffic="true" pada tag 
+<application> jika server lokal.	
+• 3. android.os.NetworkOnMainThreadException: Penyebab: Mengeksekusi fungsi jaringan 
+Retrofit langsung di Main Thread. Solusi: Wajib bungkus pemanggilan service di dalam blok 
+lifecycleScope.launch(Dispatchers.IO).	
+• 4. Expected BEGIN_OBJECT but was BEGIN_ARRAY: Penyebab: Struktur JSON server 
+adalah Array ([...]) namun model balikan Retrofit didefinisikan sebagai Objek tunggal ({...}). 
+Solusi: Sesuaikan tipe balikan method service menjadi Response<List<NamaModel>> atau 
+pastikan endpoint mengembalikan satu objek tunggal.	
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 10)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	
+• 5. kotlin.UninitializedPropertyAccessException: Penyebab: Variabel dideklarasikan sebagai 
+lateinit var namun lupa di-findViewById() di dalam onCreate(). Solusi: Pastikan seluruh 
+komponen antarmuka, khususnya textViewStatusBadge, telah diinisialisasi sebelum diakses.	
+7. TUGAS MANDIRI PRAKTIKUM (EVALUASI MAHASISWA)	
+Untuk menguji pemahaman secara mendalam, selesaikan dua penugasan praktikum mandiri berikut:	
+• Tugas 1: Deteksi Konektivitas Jaringan Sebelum Request: Tambahkan fungsi validasi jaringan 
+yang memanfaatkan ConnectivityManager Android. Jika smartphone berada dalam mode offline 
+(Airplane mode atau Wi-Fi/Data mati), tampilkan notifikasi Toast atau Snackbar berwarna 
+merah bertuliskan 'Perangkat Offline - Periksa Sambungan Jaringan Anda' sebelum aplikasi 
+mengirim request ke Retrofit.	
+• Tugas 2: Menambahkan Fitur Pencarian Berdasarkan Kata Kunci (Query Parameter): 
+Tambahkan input pencarian baru dan implementasikan endpoint 
+@GET("api/v1/tracking/search") suspend fun searchTracking(@Query("query") keyword: 
+String): Response<List<TrackingResponse>> pada LogisticsApiService.kt. Tampilkan jumlah 
+hasil paket yang ditemukan ke layar.	
+ 
+Contoh Output : 
+ 
+ 
+	
