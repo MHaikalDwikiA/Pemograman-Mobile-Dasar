@@ -10,9 +10,9 @@ Silakan beralih ke *branch* yang sesuai untuk melihat implementasi kode sumber m
 
 | No | Modul / Topik | Branch | Deskripsi |
 | :---: | :--- | :--- | :--- |
-| 1 | **Local Storage** | [`BelajarStorage`](../../tree/BelajarStorage) | Implementasi penyimpanan data lokal di Android. |
-| 2 | **Kurir Directory App** | [`Kurir-Directory-App`](../../tree/Kurir-Directory-App) | Proyek direktori kurir berbasis Android. |
-| 3 | *Modul Berikutnya* | `[Nama-Branch]` | *Akan ditambahkan sesuai materi perkuliahan.* |
+| 1 | **NavigasiActivity** | `NavigasiActivity` (../../tree/NavigasiActivity) | Implementasi Navigasi berbasis Android. |
+| 2 | **Local Storage** | [`BelajarStorage`](../../tree/BelajarStorage) | Implementasi penyimpanan data lokal di Android. |
+| 3 | **Kurir Directory App** | [`Kurir-Directory-App`](../../tree/Kurir-Directory-App) | Proyek direktori kurir berbasis Android. |
 
 ---
 
