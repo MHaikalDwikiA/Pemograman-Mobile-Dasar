@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">SmartRetailPOS</string>
+
+    <!-- MainActivity Strings -->
+    <string name="title_kalkulator">Latihan Debugger</string>
+    <string name="hint_nominal">Nominal (Cth: 10000)</string>
+    <string name="hint_quantity">Quantity (Cth: 2)</string>
+    <string name="btn_hitung">Hitung</string>
+    <string name="total_transaksi">Total Transaksi: Rp %,.2f</string>
+    <string name="total_transaksi_default">Total Transaksi: Rp 0</string>
+    <string name="btn_buka_pos">Buka POS Activity (Tugas)</string>
+    <string name="error_nominal_empty">Nominal wajib diisi</string>
+    <string name="error_qty_empty">Quantity wajib diisi</string>
+    <string name="error_input_msg">Error Input: %s</string>
+    <string name="otorisasi_title">Otorisasi Diperlukan</string>
+    <string name="otorisasi_msg">%s\n\nSilakan minta supervisor memasukkan PIN.</string>
+    <string name="ok">OK</string>
+
+    <!-- PosActivity Strings -->
+    <string name="pos_title">Terminal POS</string>
+    <string name="pos_subtitle">Simulasi Transaksi Pembayaran Kasir Berketahanan Tinggi</string>
+    <string name="hint_barcode">Pindai / Masukkan Barcode (Cth: 8991201)</string>
+    <string name="sim_success">Simulasi Transaksi Normal (Berhasil)</string>
+    <string name="sim_err_404">Simulasi Error 404 (Barcode Tidak Ditemukan)</string>
+    <string name="sim_err_network">Simulasi Error Jaringan (Payment Timeout)</string>
+    <string name="btn_process_payment">Proses Pembayaran Transaksi</string>
+
+    <string name="trx_success">TRANSAKSI BERHASIL (LUNAS)</string>
+    <string name="trx_details_placeholder">Detail transaksi akan tampil di sini...</string>
+    <string name="trx_details_template">
+ID Transaksi : %1$s
+Produk       : %2$s
+Total Bayar  : Rp %3$,.2f
+Waktu        : Baru Saja
+    </string>
+
+    <string name="error_barcode_empty">Barcode wajib diisi atau dipindai</string>
+    <string name="error_system">Kesalahan sistem tak terduga: %s</string>
+    <string name="error_barcode_not_found">Barcode tidak ditemukan</string>
+    <string name="error_gateway_timeout">Koneksi gateway terputus</string>
+    <string name="error_operational">Kegagalan operasional: %s</string>
+
+    <string name="action_coba_lagi">COBA LAGI</string>
+
+    <string name="dialog_network_title">Gangguan Jaringan Perbankan</string>
+    <string name="dialog_network_msg">Koneksi jaringan telah gagal 3 kali berturut-turut. Direkomendasikan untuk mengalihkan pelanggan ke Pembayaran Tunai Manual.</string>
+    <string name="mengerti">Mengerti</string>
+</resources>
