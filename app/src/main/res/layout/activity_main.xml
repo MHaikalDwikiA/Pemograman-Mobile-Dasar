@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <!-- App Header / Top Bar (Custom) -->
+    <LinearLayout
+        android:id="@+id/topHeader"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fintech Billing"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:padding="20dp"
+        android:clipToPadding="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topHeader">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Card: Demo JSON Parsing -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Uji Coba Dasar"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Menguji parsing JSON data Merchant menggunakan Gson."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="16dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnParseBasic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Parse Data Sederhana"
+                        android:textColor="@color/primary"
+                        app:backgroundTint="@color/primary_light"
+                        app:cornerRadius="8dp"
+                        app:elevation="0dp" />
+
+                    <!-- Kotak Log / Output -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="#F1F5F9"
+                        android:padding="12dp"
+                        android:orientation="vertical"
+                        android:elevation="0dp"
+                        android:backgroundTint="#F1F5F9">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Log Output:"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvOutputBasic"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="Output akan muncul di sini"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card: Invoice Feature -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:gravity="center_horizontal">
+
+                    <ImageView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_marginBottom="16dp"
+                        android:src="@android:drawable/ic_dialog_info"
+                        app:tint="@color/primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lihat E-Receipt Tagihan"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tampilkan faktur digital (E-Invoice) yang telah diparsing dari JSON secara utuh dan kompleks."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:textAlignment="center"
+                        android:layout_marginBottom="24dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenInvoice"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Buka Faktur Tagihan"
+                        app:cornerRadius="12dp"
+                        app:backgroundTint="@color/primary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,529 @@
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 1	
+MODUL PRAKTIKUM MAHASISWA 
+PERTEMUAN 11: PARSING JSON & PEMODELAN DATA BERSTRUKTUR 
+(KOTLIN DATA CLASS DTO, MOSHI/GSON ENGINE, NESTED OBJECT, & ARRAY 
+COLLECTION) 
+Mata Kuliah: Pemrograman Mobile Dasar Dosen Pengampu: Rosidin, S.Kom., M.Kom. 
+Program Studi: Sistem Informasi Metode Pembelajaran: Hands-on Lab 
+(Case-Based Learning) 
+Sub-CPMK 11: Mampu memodelkan skema 
+respons JSON kompleks (Nested Object, 
+JSON Array, Nullable Fields) ke dalam 
+Kotlin Data Class DTO menggunakan anotasi 
+serialisasi serta mengintegrasikannya ke 
+Retrofit Converter. 
+Platform / Bahasa: Android Studio (Kotlin) 
+1. TUJUAN PRAKTIKUM & KEBUTUHAN SISTEM 
+Setelah menyelesaikan modul praktikum Pertemuan 11 ini, mahasiswa diharapkan mampu: 
+1. Memahami struktur hierarkis payload JSON yang mencakup tipe data primitif, objek ({ }), 
+dan larik/array ([ ]). 
+2. Membuat representasi data transfer object (DTO) menggunakan fitur Data Class Kotlin yang 
+ringkas dan efisien. 
+3. Menerapkan anotasi pemetaan serialisasi (@SerializedName / @Json) untuk menjembatani 
+konvensi snake_case API ke camelCase Kotlin. 
+4. Mengurai struktur JSON bertingkat (Nested Objects) dan kumpulan koleksi data (JSON 
+Arrays) ke dalam antarmuka RecyclerView. 
+5. Menerapkan prinsip defensive programming terhadap kemungkinan nilai null (Null-Safety) 
+guna mencegah crash aplikasi di tingkat produksi. 
+Kebutuhan Praktikum: Kebutuhan Perangkat & Lingkungan Pengembangan: 
+• Komputer/Laptop dengan RAM minimal 8 GB (disarankan 16 GB). 
+• Android Studio (versi Iguana / Jellyfish / Koala / Ladybug atau yang lebih baru). 
+• JDK 17 atau OpenJDK bawaan Android Studio. 
+• Emulator Android (API 24+) atau Smartphone Android fisik dengan USB Debugging aktif. 
+2. TEORI PENGANTAR: STRUKTUR DATA JSON & ENGINE PARSER ANDROID 
+2.1 Mengapa Pemodelan Data Transfer Object (DTO) Krusial? 
+JSON (JavaScript Object Notation) adalah format pertukaran data standar web dan mobile 
+berbasis teks biasa (String). Ketika aplikasi mobile menerima payload JSON dari server, teks 
+mentah tersebut harus diuraikan (parsed/deserialized) menjadi representasi objek memori yang 
+dikenali oleh bahasa pemrograman Kotlin. 
+Di Kotlin, pemodelan ini diwujudkan melalui Data Class DTO. Keuntungan utama Data Class 
+mencakup otomatisasi pembuatan fungsi equals(), hashCode(), toString(), dan copy( ) secara 
+otomatis di balik layar oleh compiler Kotlin. 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 2	
+2.2 Komparasi Engine Parser: Google Gson vs Square Moshi 
+Terdapat dua engine parser paling dominan di industri pengembangan aplikasi Android saat ini: 
+Karakteristik Google Gson Square Moshi 
+Arsitektur Inti Java Reflection Runtime Reflection / KSP Code 
+Generation 
+Dukungan Kotlin Null-
+Safety 
+Rentan (Bisa memasukkan null 
+ke non-null) 
+Ketat & Asli Mendukung Kotlin 
+Nullability 
+Performa Kecepatan 
+Parsing 
+Cukup Baik Sangat Cepat & Rendah Alokasi 
+Memori 
+Ukuran Library & 
+Maintenance 
+Stabil (Maintenance mode) Sangat Aktif Dimutakhirkan oleh 
+Square 
+Anotasi Pemetaan @SerializedName("key_name") @Json(name = "key_name") 
+ 
+💡 PRINSIP PARSER INDUSTRI: Di industri modern, Square Moshi sangat 
+direkomendasikan untuk proyek Kotlin murni karena mampu menolak payload JSON yang 
+tidak sesuai dengan nullability kontrak data class, sehingga mendeteksi bug data lebih dini 
+sebelum aplikasi crash. 
+3. TAHAP 1: PRAKTIKUM DASAR SERIALISASI & DESERIALISASI JSON 
+Pada tahap ini, mahasiswa mempelajari mekanisme parsing dasar: mengonversi JSON String 
+sederhana menjadi Objek Kotlin dan sebaliknya. 
+Langkah 3.1: Membuat Proyek Baru & Memasang Dependensi 
+• Buka Android Studio, buat proyek baru dengan template 'Empty Views Activity'. 
+• Nama Proyek: 'FintechBillingApp', Package: 'com.industri.fintechbilling'. 
+• Buka file `app/build.gradle.kts`, tambahkan dependensi Gson dan Material Components: 
+📄 app/build.gradle.kts 
+dependencies { 
+    implementation(libs.androidx.core.ktx) 
+    implementation(libs.androidx.appcompat) 
+    implementation(libs.material) 
+    implementation(libs.androidx.activity) 
+    implementation(libs.androidx.constraintlayout) 
+ 
+    // Parser Engine Gson & Retrofit Converter 
+    implementation("com.google.code.gson:gson:2.11.0") 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 3	
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0") 
+ 
+    // RecyclerView untuk menyajikan data list item 
+    implementation("androidx.recyclerview:recyclerview:1.3.2") 
+} 
+ 
+Langkah 3.2: Membuat Data Class Model Sederhana (Merchant.kt) 
+Buat berkas Kotlin `Merchant.kt` yang mengilustrasikan pemetaan format snake_case ke 
+camelCase: 
+📄 com/industri/fintechbilling/Merchant.kt 
+package com.industri.fintechbilling 
+ 
+import com.google.gson.annotations.SerializedName 
+ 
+data class Merchant( 
+    @SerializedName("merchant_id") 
+    val merchantId: String, 
+ 
+    @SerializedName("merchant_name") 
+    val merchantName: String, 
+ 
+    @SerializedName("city_location") 
+    val cityLocation: String, 
+ 
+    @SerializedName("is_verified") 
+    val isVerified: Boolean = false 
+) 
+ 
+Langkah 3.3: Uji Coba Parsing String JSON Manual di MainActivity.kt 
+Tulis kode pembuktian parsing pada `MainActivity.kt` untuk memahami cara kerja Gson 
+mengonversi teks JSON: 
+📄 com/industri/fintechbilling/MainActivity.kt 
+package com.industri.fintechbilling 
+ 
+import android.os.Bundle 
+import android.widget.Button 
+import android.widget.TextView 
+import androidx.appcompat.app.AppCompatActivity 
+import com.google.gson.Gson 
+ 
+class MainActivity : AppCompatActivity() { 
+ 
+    override fun onCreate(savedInstanceState: Bundle?) { 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 4	
+        super.onCreate(savedInstanceState) 
+        setContentView(R.layout.activity_main) 
+ 
+        val btnParse = findViewById<Button>(R.id.btnParseBasic) 
+        val tvOutput = findViewById<TextView>(R.id.tvOutputBasic) 
+ 
+        btnParse.setOnClickListener { 
+            // Simulasi teks mentah JSON dari server 
+            val rawJsonString = """ 
+                { 
+                    "merchant_id": "MCH-99201", 
+                    "merchant_name": "Mega Elektrindo Ritel", 
+                    "city_location": "Bandung", 
+                    "is_verified": true 
+                } 
+            """.trimIndent() 
+ 
+            // Proses Deserialisasi: String JSON -> Objek Kotlin Merchant 
+            val gson = Gson() 
+            val merchantObj: Merchant = gson.fromJson(rawJsonString, Merchant::class.java) 
+ 
+            // Menampilkan hasil ekstraksi properti objek Kotlin 
+            val result = """ 
+                BERHASIL DI-PARSING: 
+                • ID Mitra : ${merchantObj.merchantId} 
+                • Nama Toko: ${merchantObj.merchantName} 
+                • Kota     : ${merchantObj.cityLocation} 
+                • Terverifikasi: ${if (merchantObj.isVerified) "RESMI (Ya)" else "Belum"} 
+            """.trimIndent() 
+ 
+            tvOutput.text = result 
+        } 
+    } 
+} 
+ 
+4. TAHAP 2: PRAKTIKUM LANJUTAN & STUDI KASUS INDUSTRI  
+STUDI KASUS INDUSTRI: FINTECH DIGITAL INVOICING & PAYMENT GATEWAY 
+BREAKDOWN 
+Di industri perbankan dan financial technology (FinTech), respons server transaksi selalu 
+bertingkat. Sebuah berkas faktur tagihan (Invoice) memiliki Root Object (ID Invoice & Status 
+Pembayaran), Objek Bersarang Mitra (Merchant) & Pembayar (Payer), Array Kumpulan Barang 
+Belanja (Purchase Items), dan Rangkuman Total Biaya termasuk rincian Pajak Pertambahan 
+Nilai (PPN 11%) serta Diskon. 
+Langkah 4.1: Struktur Spesifikasi JSON Industri 3 Lapis 
+Berikut adalah payload JSON transaksi riil yang akan dimodelkan dan diparsing: 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 5	
+📄 payload_invoice_sample.json 
+{ 
+  "invoice_number": "INV-2026-FT9012", 
+  "transaction_date": "2026-09-23 10:15:00", 
+  "payment_status": "PAID_SETTLED", 
+  "payment_method": "QRIS_BCA", 
+  "merchant": { 
+    "merchant_id": "MCH-99201", 
+    "merchant_name": "Mega Elektrindo Ritel", 
+    "city_location": "Bandung", 
+    "is_verified": true 
+  }, 
+  "customer": { 
+    "customer_id": "CUST-4412", 
+    "full_name": "Ahmad Fauzi", 
+    "phone": "081298765432" 
+  }, 
+  "items": [ 
+    { 
+      "item_id": "ITM-01", 
+      "item_name": "Kabel Type-C 65W Fast Charging", 
+      "qty": 2, 
+      "unit_price": 75000.0, 
+      "subtotal": 150000.0 
+    }, 
+    { 
+      "item_id": "ITM-02", 
+      "item_name": "Adaptor GaN Charger 3-Port 100W", 
+      "qty": 1, 
+      "unit_price": 320000.0, 
+      "subtotal": 320000.0 
+    }, 
+    { 
+      "item_id": "ITM-03", 
+      "item_name": "Mouse Wireless Silent Click Ergonomis", 
+      "qty": 1, 
+      "unit_price": 130000.0, 
+      "subtotal": 130000.0 
+    } 
+  ], 
+  "summary": { 
+    "subtotal_amount": 600000.0, 
+    "discount_amount": 50000.0, 
+    "tax_ppn_11": 60500.0, 
+    "service_fee": 2500.0, 
+    "total_paid": 613000.0 
+  } 
+} 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 6	
+ 
+Langkah 4.2: Memodelkan Seluruh Entitas DTO ke Kotlin Data Classes 
+Buat berkas `InvoiceResponse.kt` yang mengintegrasikan seluruh hirarki model: 
+📄 com/industri/fintechbilling/InvoiceResponse.kt 
+package com.industri.fintechbilling 
+ 
+import com.google.gson.annotations.SerializedName 
+ 
+// 1. Root DTO Faktur Transaksi 
+data class InvoiceResponse( 
+    @SerializedName("invoice_number") 
+    val invoiceNumber: String, 
+ 
+    @SerializedName("transaction_date") 
+    val transactionDate: String, 
+ 
+    @SerializedName("payment_status") 
+    val paymentStatus: String, 
+ 
+    @SerializedName("payment_method") 
+    val paymentMethod: String, 
+ 
+    @SerializedName("merchant") 
+    val merchant: Merchant, 
+ 
+    @SerializedName("customer") 
+    val customer: Customer, 
+ 
+    @SerializedName("items") 
+    val items: List<InvoiceItem>, 
+ 
+    @SerializedName("summary") 
+    val summary: BillingSummary 
+) 
+ 
+// 2. DTO Customer Pembayar 
+data class Customer( 
+    @SerializedName("customer_id") 
+    val customerId: String, 
+ 
+    @SerializedName("full_name") 
+    val fullName: String, 
+ 
+    @SerializedName("phone") 
+    val phone: String 
+) 
+ 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 7	
+// 3. DTO Item Produk Belanja (JSON Array Element) 
+data class InvoiceItem( 
+    @SerializedName("item_id") 
+    val itemId: String, 
+ 
+    @SerializedName("item_name") 
+    val itemName: String, 
+ 
+    @SerializedName("qty") 
+    val qty: Int, 
+ 
+    @SerializedName("unit_price") 
+    val unitPrice: Double, 
+ 
+    @SerializedName("subtotal") 
+    val subtotal: Double 
+) 
+ 
+// 4. DTO Rangkuman Biaya & Pajak 
+data class BillingSummary( 
+    @SerializedName("subtotal_amount") 
+    val subtotalAmount: Double, 
+ 
+    @SerializedName("discount_amount") 
+    val discountAmount: Double = 0.0, 
+ 
+    @SerializedName("tax_ppn_11") 
+    val taxPpn11: Double, 
+ 
+    @SerializedName("service_fee") 
+    val serviceFee: Double, 
+ 
+    @SerializedName("total_paid") 
+    val totalPaid: Double 
+) 
+ 
+Langkah 4.3: Mendesain Layout Baris Item Pembelian (item_invoice_product.xml) 
+Buat berkas layout `res/layout/item_invoice_product.xml` untuk baris item di RecyclerView: 
+📄 res/layout/item_invoice_product.xml 
+<?xml version="1.0" encoding="utf-8"?> 
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" 
+    android:layout_width="match_parent" 
+    android:layout_height="wrap_content" 
+    android:orientation="vertical" 
+    android:paddingVertical="8dp"> 
+ 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 8	
+    <LinearLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:orientation="horizontal"> 
+ 
+        <TextView 
+            android:id="@+id/tvItemName" 
+            android:layout_width="0dp" 
+            android:layout_height="wrap_content" 
+            android:layout_weight="1" 
+            android:text="Nama Barang Belanja" 
+            android:textSize="13sp" 
+            android:textStyle="bold" 
+            android:textColor="#0F172A" /> 
+ 
+        <TextView 
+            android:id="@+id/tvItemSubtotal" 
+            android:layout_width="wrap_content" 
+            android:layout_height="wrap_content" 
+            android:text="Rp 150.000" 
+            android:textSize="13sp" 
+            android:textStyle="bold" 
+            android:textColor="#0F172A" /> 
+    </LinearLayout> 
+ 
+    <TextView 
+        android:id="@+id/tvItemQtyPrice" 
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content" 
+        android:text="2 x @ Rp 75.000" 
+        android:textSize="12sp" 
+        android:textColor="#64748B" 
+        android:layout_marginTop="2dp" /> 
+ 
+    <View 
+        android:layout_width="match_parent" 
+        android:layout_height="1dp" 
+        android:background="#F1F5F9" 
+        android:layout_marginTop="8dp" /> 
+ 
+</LinearLayout> 
+ 
+Langkah 4.4: Membuat Adapter RecyclerView (InvoiceItemAdapter.kt) 
+Buat adapter untuk mengikat koleksi `List<InvoiceItem>` ke elemen tampilan: 
+📄 com/industri/fintechbilling/InvoiceItemAdapter.kt 
+package com.industri.fintechbilling 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 9	
+ 
+import android.view.LayoutInflater 
+import android.view.View 
+import android.view.ViewGroup 
+import android.widget.TextView 
+import androidx.recyclerview.widget.RecyclerView 
+import java.text.NumberFormat 
+import java.util.Locale 
+ 
+class InvoiceItemAdapter(private val items: List<InvoiceItem>) : 
+    RecyclerView.Adapter<InvoiceItemAdapter.ViewHolder>() { 
+ 
+    private val rupiahFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID")) 
+ 
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) { 
+        val tvName: TextView = view.findViewById(R.id.tvItemName) 
+        val tvQtyPrice: TextView = view.findViewById(R.id.tvItemQtyPrice) 
+        val tvSubtotal: TextView = view.findViewById(R.id.tvItemSubtotal) 
+    } 
+ 
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder { 
+        val view = LayoutInflater.from(parent.context) 
+            .inflate(R.layout.item_invoice_product, parent, false) 
+        return ViewHolder(view) 
+    } 
+ 
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) { 
+        val item = items[position] 
+        holder.tvName.text = item.itemName 
+        holder.tvQtyPrice.text = "${item.qty} x @ ${rupiahFormat.format(item.unitPrice)}" 
+        holder.tvSubtotal.text = rupiahFormat.format(item.subtotal) 
+    } 
+ 
+    override fun getItemCount(): Int = items.size 
+} 
+ 
+Langkah 4.5: Menampilkan Rincian Tagihan FinTech (InvoiceActivity.kt) 
+Koding logika penguraian JSON dan pengikatan data ke antarmuka faktur: 
+📄 com/industri/fintechbilling/InvoiceActivity.kt 
+package com.industri.fintechbilling 
+ 
+import android.os.Bundle 
+import android.widget.TextView 
+import androidx.appcompat.app.AppCompatActivity 
+import androidx.recyclerview.widget.LinearLayoutManager 
+import androidx.recyclerview.widget.RecyclerView 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 10	
+import com.google.gson.Gson 
+import java.text.NumberFormat 
+import java.util.Locale 
+ 
+class InvoiceActivity : AppCompatActivity() { 
+ 
+    override fun onCreate(savedInstanceState: Bundle?) { 
+        super.onCreate(savedInstanceState) 
+        setContentView(R.layout.activity_invoice) 
+ 
+        val rupiahFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID")) 
+ 
+        // 1. Eksekusi Parsing JSON Payload Transaksi 
+        val jsonPayload = loadMockInvoiceJson() 
+        val invoice: InvoiceResponse = Gson().fromJson(jsonPayload, 
+InvoiceResponse::class.java) 
+ 
+        // 2. Hubungkan Informasi Header & Merchant 
+        findViewById<TextView>(R.id.tvInvoiceNo).text = invoice.invoiceNumber 
+        findViewById<TextView>(R.id.tvStatusBadge).text = invoice.paymentStatus 
+        findViewById<TextView>(R.id.tvMerchantName).text = 
+invoice.merchant.merchantName 
+        findViewById<TextView>(R.id.tvCustomerName).text = "Penerima: 
+${invoice.customer.fullName} (${invoice.customer.phone})" 
+ 
+        // 3. Pasangkan Daftar Barang Belanja ke RecyclerView 
+        val rvItems = findViewById<RecyclerView>(R.id.rvInvoiceItems) 
+        rvItems.layoutManager = LinearLayoutManager(this) 
+        rvItems.adapter = InvoiceItemAdapter(invoice.items) 
+ 
+        // 4. Hubungkan Rangkuman Biaya (Pajak PPN 11% & Diskon) 
+        val s = invoice.summary 
+        findViewById<TextView>(R.id.tvSubtotalAmt).text = 
+rupiahFormat.format(s.subtotalAmount) 
+        findViewById<TextView>(R.id.tvDiscountAmt).text = "- 
+${rupiahFormat.format(s.discountAmount)}" 
+        findViewById<TextView>(R.id.tvTaxAmt).text = rupiahFormat.format(s.taxPpn11) 
+        findViewById<TextView>(R.id.tvFeeAmt).text = rupiahFormat.format(s.serviceFee) 
+        findViewById<TextView>(R.id.tvTotalPaid).text = rupiahFormat.format(s.totalPaid) 
+    } 
+ 
+    private fun loadMockInvoiceJson(): String { 
+        // Pada aplikasi riil, JSON ini diterima dari pemanggilan Retrofit API 
+        return """{ 
+            "invoice_number": "INV-2026-FT9012", 
+            "transaction_date": "2026-09-23 10:15:00", 
+            "payment_status": "PAID_SETTLED", 
+            "payment_method": "QRIS_BCA", 
+            "merchant": { "merchant_id": "MCH-99201", "merchant_name": "Mega Elektrindo 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 11	
+Ritel", "city_location": "Bandung", "is_verified": true }, 
+            "customer": { "customer_id": "CUST-4412", "full_name": "Ahmad Fauzi", "phone": 
+"081298765432" }, 
+            "items": [ 
+                { "item_id": "ITM-01", "item_name": "Kabel Type-C 65W Fast Charging", "qty": 
+2, "unit_price": 75000.0, "subtotal": 150000.0 }, 
+                { "item_id": "ITM-02", "item_name": "Adaptor GaN Charger 3-Port 100W", 
+"qty": 1, "unit_price": 320000.0, "subtotal": 320000.0 }, 
+                { "item_id": "ITM-03", "item_name": "Mouse Wireless Silent Click Ergonomis", 
+"qty": 1, "unit_price": 130000.0, "subtotal": 130000.0 } 
+            ], 
+            "summary": { "subtotal_amount": 600000.0, "discount_amount": 50000.0, 
+"tax_ppn_11": 60500.0, "service_fee": 2500.0, "total_paid": 613000.0 } 
+        }""".trimIndent() 
+    } 
+} 
+ 
+⚠ KETELITIAN TIPE DATA FINTECH: Selalu pastikan tipe data angka pecahan uang 
+pada pemodelan DTO menggunakan Double atau Long (bukan Int) agar tidak terjadi 
+overflow perhitungan saat nilai transaksi mencapai puluhan atau ratusan juta rupiah. 
+ 
+Output : 
+ 
+https://drive.google.com/file/d/1XRhyJ7O0o6Fp8BZ_5C7LJnX2tNp0GdYy/view?usp=sharing 
+ 
+5. TROUBLESHOOTING UMUM & TIPS DEBUGGING 
+Jika mahasiswa menemui galat ketika melakukan parsing JSON, periksa penyebab dan solusi 
+berikut: 
+• 1. Field Objek Bernilai Null Meskipun Ada Datanya di Server: Penyebab: Nama variabel 
+di Kotlin berbeda dengan nama kunci JSON server dan lupa menambahkan anotasi 
+@SerializedName. Solusi: Tambahkan anotasi pemetaan tepat di atas variabel. 
+• 2. java.lang.NumberFormatException: Penyebab: Server mengirim nilai desimal berkoma 
+dalam bentuk teks bertanda kutip (contoh: "unit_price": "75000.0"), namun model DTO 
+didefinisikan sebagai Int. Solusi: Gunakan tipe Double atau String. 
+• 3. com.google.gson.JsonSyntaxException: IllegalStateException: Penyebab: Kunci 
+summary pada server tidak dikirim atau bernilai null, sementara di Kotlin didefinisikan 
+sebagai non-null. Solusi: Berikan tanda tanya (val summary: BillingSummary?) dan 
+sediakan nilai fallback. 
+• 4. Seluruh Field Berubah Bernilai Null Saat Build APK Release: Penyebab: Saat build 
+release (minifyEnabled true), ProGuard mengaburkan (obfuscate) nama properti kelas. 
+Solusi: Tambahkan -keepclassmembers class com.industri.fintechbilling.** { *; } pada 
+proguard-rules.pro. 
+MODUL PRAKTIKUM: PEMROGRAMAN MOBILE DASAR (PERTEMUAN 11)	
+STMIK IKMI Cirebon | Program Studi Sistem Informasi - Dosen: Rosidin, S.Kom., M.Kom.	 12	
+6. TUGAS MANDIRI PRAKTIKUM  
+Untuk menguji penguasaan materi parsing JSON berstruktur, selesaikan tugas berikut: 
+• Tugas 1 (Defensive Nullable Handling): Tambahkan properti opsional 'voucher_code: 
+String?' dan 'voucher_discount_percent: Int?' pada BillingSummary yang bersifat nullable. 
+Jika server tidak menyertakan voucher (bernilai null), sembunyikan baris diskon pada UI 
+faktur dan tampilkan keterangan 'Tidak menggunakan promo'. 
+• Tugas 2 (Custom Date Formatting): Buat fungsi ekstensi Kotlin atau Custom TypeAdapter 
+untuk memformat teks tanggal transaksi ('2026-09-23 10:15:00') menjadi format waktu 
+ramah pengguna: 'Rabu, 23 September 2026 - Pukul 10:15 WIB'. 
+ 
+ 

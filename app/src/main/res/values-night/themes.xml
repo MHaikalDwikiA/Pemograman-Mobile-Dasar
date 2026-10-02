@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme for Dark Mode (currently synced with light mode to maintain clean UI). -->
+    <style name="Base.Theme.FintechBillingApp" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Core Brand Colors (Blue) -->
+    <color name="primary">#1E40AF</color>        <!-- Tailwind blue-800 -->
+    <color name="primary_light">#DBEAFE</color>  <!-- Tailwind blue-100 -->
+    <color name="primary_dark">#1E3A8A</color>   <!-- Tailwind blue-900 -->
+
+    <!-- Accent & Status Colors -->
+    <color name="accent">#F59E0B</color>         <!-- Amber -->
+    <color name="success">#10B981</color>        <!-- Emerald -->
+    <color name="success_light">#D1FAE5</color>  <!-- Emerald-100 -->
+
+    <!-- Neutral Colors -->
+    <color name="background">#F8FAFC</color>     <!-- Slate-50 -->
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#0F172A</color>   <!-- Slate-900 -->
+    <color name="text_secondary">#64748B</color> <!-- Slate-500 -->
+    <color name="divider">#E2E8F0</color>        <!-- Slate-200 -->
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
