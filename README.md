@@ -17,6 +17,7 @@ Silakan beralih ke *branch* yang sesuai untuk melihat implementasi kode sumber m
 | 5 | **Fintech Billing App** | [`FintechBillingApp`](../../tree/FintechBillingApp) | Implementasi tampilan pembayaran berbasis Android. |
 | 6 | **Smart Retail POS** | [`SmartRetailPOS`](../../tree/SmartRetailPOS) | Error handling & Teknik Debugging Aplikasi Mobile. |
 | 7 | **Transport Booking QA** | [`TransportBookingQA`](../../tree/TransportBookingQA) | Pengujian Aplikasi Mobile & Penajaminan Mutu (QA). |
+| 8 | **Fleet Track Pro** | [`FleetTrackPro`](../../tree/FleetTrackPro) | Perancangan Blueprint Arsitektur. |
 
 ---
 
