@@ -1,0 +1,1185 @@
+
+--- Page 1 ---
+ 1 
+MODUL PRAKTIKUM TERPADU MAHASISWA 
+PERTEMUAN 14 & 15: MINI PROJECT: PERANCANGAN BLUEPRINT 
+ARSITEKTUR 
+HINGGA IMPLEMENTASI FULL-STACK END-TO-END & RELEASE BUILD 
+(FLEETTRACKPRO) 
+Mata Kuliah : Pemrograman Mobile Dasar Bobot / Semester : 3 SKS / Ganjil 2026/2027 
+Program Studi : Rekayasa Perangkat Lunak / SI Platform / Tool : Android Studio (Kotlin DSL) 
+1. TUJUAN PRAKTIKUM & KEBUTUHAN SISTEM TERPADU 
+Modul praktikum terpadu ini menyatukan dua tahapan rekayasa perangkat lunak mobile industri 
+dari proyek FleetTrackPro (Aplikasi Manajemen Logistik Kurir Cirebon): Perancangan Blueprint 
+Arsitektur (Pertemuan 14) dan Implementasi Koding Full-Stack, Integrasi Offline-First, Pencarian 
+Cepat, hingga Penerbitan Berkas Rilis Produksi (Pertemuan 15). Setelah menuntaskan modul ini, 
+mahasiswa diharapkan mampu: 
+1. Analisis Kebutuhan Sistem: Menganalisis spesifikasi kebutuhan fungsional perangkat lunak 
+mobile (SRS) berbasis studi kasus operasional logistik pengiriman kurir riil. 
+2. Arsitektur Bersih Modular: Menyusun struktur paket direktori modular standar industri 
+menggunakan pola arsitektur MVVM (Model-View-ViewModel). 
+3. Desain Skema Basis Data Room: Merancang skema relasi basis data lokal Room Database yang 
+efisien, terindeks, dan mendukung operasional offline-first. 
+4. Kontrak Komunikasi REST API: Mendefinisikan kontrak antarmuka pemrograman aplikasi 
+(RESTful API Contract) menggunakan standar JSON Schema terpadu. 
+5. Repositori Offline-First Caching: Mengintegrasikan lapisan basis data lokal (Room ORM) dan 
+lapisan jaringan remote (Retrofit) ke dalam kelas Repositori sebagai Single Source of Truth. 
+6. Manajemen Status Reaktif:  Menerapkan pengelolaan status tampilan layar asinkron 
+menggunakan arsitektur ViewModel dan StateFlow reaktif dengan ViewModelProvider.Factory. 
+7. Performa UI ListAdapter & DiffUtil: Mengimplementasikan komponen penyaji daftar data 
+performa tinggi menggunakan ListAdapter dan DiffUtil modern (60 FPS tanpa jank). 
+8. Release Engineering & Keamanan: Mengonfigurasi proteksi keamanan ProGuard/R8 dan 
+memproduksi berkas instalasi rilis (Release Signed APK) siap pasang di gawai kurir lapangan. 
+Spesifikasi & Piranti Praktikum: Kebutuhan Lingkungan Pengembangan (Prerequisites): 
+• Komputer/Laptop dengan OS Windows/macOS/Linux, prosesor minimal Core i5/Ryzen 5, dan 
+RAM minimal 8 GB (disarankan 16 GB). 
+• Android Studio Ladybug / Koala / Jellyfish dengan JDK 17 bawaan. 
+• Android Virtual Device (AVD) Pixel 5 API 34 atau smartphone Android fisik dengan mode 
+USB Debugging aktif. 
+• Koneksi internet untuk sinkronisasi repositori dependensi Gradle. 
+--- Page 2 ---
+ 2 
+2. TEORI PENGANTAR: BLUEPRINT ARSITEKTUR HINGGA RELEASE 
+ENGINEERING 
+2.1 Urgensi Perancangan Sebelum Tahap Koding (The Blueprint Phase) 
+Dalam proyek rekayasa perangkat lunak mobile industri skala menengah hingga besar, memulai 
+koding tanpa cetak biru (blueprint) perancangan yang matang adalah penyebab utama kegagalan 
+proyek (Spaghetti Code, inkonsistensi skema database lokal vs remote server, dan kebuntuan 
+integrasi antarmuka). Perancangan blueprint menjamin setiap pengembang memahami kontrak data, 
+batas tanggung jawab antarlapisan, dan alur aliran data yang sama. 
+2.2 Arsitektur Modern Android: MVVM & Strategi Offline-First 
+Google secara resmi menetapkan arsitektur Model-View-ViewModel (MVVM) yang dipadukan 
+dengan strategi Offline-First sebagai acuan pengembangan standar industri: 
+Lapisan 
+Arsitektur 
+Komponen Utama Tanggung Jawab Spesifik Ketergantungan 
+Presentation Layer ManifestActivity, XML 
+Layout, Adapter 
+Menampilkan data visual paket kurir & 
+merespons interaksi sentuhan pengguna 
+Bergantung hanya 
+pada ViewModel 
+State Management ManifestViewModel, 
+StateFlow 
+Menyimpan status layar (Loading, 
+Success, Error) & bertahan dari rotasi 
+gawai 
+Bergantung hanya 
+pada Repository 
+Domain / 
+Repository 
+DeliveryRepository 
+(Interface & Impl) 
+Mengatur logika sinkronisasi data Room 
+DB & Cloud API (Single Source of 
+Truth) 
+Independen dari 
+View/UI 
+Data Source Layer DeliveryDao, 
+DeliveryDaoImpl, 
+CourierApiService 
+Melakukan operasi fisik baca/tulis 
+persistensi lokal & panggilan HTTP 
+RESTful 
+Driver perangkat & 
+library pihak ketiga 
+ 
+💡 NILAI STRATEGIS OFFLINE-FIRST DALAM LOGISTIK: Pola Offline-First memastikan kurir di 
+lapangan dapat terus bekerja menandai paket terkirim atau gagal kirim meskipun sedang berada di basemen 
+gedung atau daerah pelosok tanpa sinyal seluler. Data tersimpan aman di persistensi lokal dan otomatis 
+disinkronkan ke server pusat saat koneksi internet kembali pulih. 
+2.3 Efisiensi Jetpack ListAdapter & DiffUtil vs Adapter Konvensional 
+Pada implementasi RecyclerView konvensional, pembaruan daftar data sering kali memanggil 
+metode notifyDataSetChanged(). Metode usang ini memaksa seluruh item di layar digambar ulang 
+dari nol, menimbulkan kedipan layar (flickering), konsumsi baterai boros, serta lag scrolling (jank). 
+Sebaliknya, Jetpack ListAdapter dengan DiffUtil menghitung selisih matematis antara daftar lama 
+dan baru di Background Thread (menggunakan algoritma Eugene Myers) dan hanya memperbarui 
+elemen sel yang benar-benar mengalami perubahan data. 
+2.4 Release Engineering: Pentingnya Code Shrinking, Obfuscation, & R8 
+Memproduksi berkas aplikasi untuk lingkungan produksi membutuhkan tahapan Release 
+Engineering. Fitur ProGuard/R8 pada Android Gradle Plugin melakukan 3 hal krusial: (1) Code 
+Shrinking (menghapus kelas, metode, dan atribut pustaka yang tidak pernah dipanggil), (2) 
+--- Page 3 ---
+ 3 
+Resource Shrinking (menghapus gambar atau aset XML yang tidak terpakai), dan (3) Obfuscation 
+(mengaburkan nama kelas dan metode menjadi huruf acak seperti a.b.c untuk mencegah rekayasa 
+balik / dekompilasi oleh pihak tidak bertanggung jawab). 
+3. TAHAP 1: FONDASI, STRUKTUR PAKET, & BLUEPRINT PERANCANGAN  
+Langkah 3.1: Membuat Proyek Induk di Android Studio 
+Buka Android Studio, pilih menu File -> New -> New Project -> Empty Views Activity. 
+• Nama Proyek: FleetTrackPro 
+• Package Name: com.industri.fleettrack 
+• Bahasa Pemrograman: Kotlin 
+• Minimum SDK: API 24 (Android 7.0 Nougat - mencakup >98% gawai industri) 
+• Build Configuration Language: Kotlin DSL (build.gradle.kts) 
+Langkah 3.2: Penataan Struktur Direktori Modular Standar Industri 
+Susun struktur paket di dalam direktori `app/src/main/java/com/industri/fleettrack/` agar mematuhi 
+kaidah Separation of Concerns (SoC) persis seperti susunan proyek Android Studio saat ini: 
+// Struktur Direktori Bersih Paket Proyek com.industri.fleettrack 
+com.industri.fleettrack/ 
+│ 
+├── data/ 
+│   ├── local/ 
+│   │   ├── entity/        // Entities.kt (DeliveryOrderEntity, SyncQueueEntity) 
+│   │   ├── dao/           // DeliveryDao.kt (Interface) & DeliveryDaoImpl.kt 
+(Concrete DAO) 
+│   │   └── AppDatabase.kt // AppDatabase Provider (Singleton Provider) 
+│   ├── remote/ 
+│   │   └── api/           // CourierApiService.kt & DeliveryDto Response 
+│   └── repository/        // DeliveryRepository.kt (Single Source of Truth) 
+│ 
+└── ui/ 
+    └── manifest/          // Antarmuka Daftar Manifest Kurir 
+        ├── ManifestActivity.kt    // Activity Utama (ViewBinding, Search, 
+SwipeRefresh) 
+        ├── ManifestViewModel.kt   // ViewModel + Factory + StateFlow Reaktif 
+        └── DeliveryListAdapter.kt // ListAdapter + DiffUtil 60 FPS 
+Langkah 3.3: Konfigurasi Dependensi Lengkap (app/build.gradle.kts) 
+Buka berkas `app/build.gradle.kts` pada modul aplikasi dan konfigurasikan dependensi produksi 
+berikut: 
+plugins { 
+    alias(libs.plugins.android.application) 
+} 
+ 
+android { 
+    namespace = "com.industri.fleettrack" 
+    compileSdk { 
+        version = release(37) 
+--- Page 4 ---
+ 4 
+    } 
+ 
+    defaultConfig { 
+        applicationId = "com.industri.fleettrack" 
+        minSdk = 24 
+        targetSdk = 37 
+        versionCode = 1 
+        versionName = "1.0" 
+ 
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" 
+    } 
+ 
+    buildFeatures { 
+        viewBinding = true 
+    } 
+ 
+    buildTypes { 
+        release { 
+            isMinifyEnabled = true 
+            proguardFiles( 
+                getDefaultProguardFile("proguard-android-optimize.txt"), 
+                "proguard-rules.pro" 
+            ) 
+        } 
+        debug { 
+            isMinifyEnabled = false 
+        } 
+    } 
+    compileOptions { 
+        sourceCompatibility = JavaVersion.VERSION_17 
+        targetCompatibility = JavaVersion.VERSION_17 
+    } 
+} 
+ 
+dependencies { 
+    implementation(libs.androidx.core.ktx) 
+    implementation(libs.androidx.appcompat) 
+    implementation(libs.material) 
+    implementation(libs.androidx.activity.ktx) 
+    implementation(libs.androidx.constraintlayout) 
+ 
+    // RecyclerView, CardView, and SwipeRefreshLayout 
+    implementation("androidx.recyclerview:recyclerview:1.3.2") 
+    implementation("androidx.cardview:cardview:1.0.0") 
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") 
+ 
+    // Room Database 
+    implementation("androidx.room:room-runtime:2.6.1") 
+    implementation("androidx.room:room-ktx:2.6.1") 
+ 
+    // Square Retrofit 2 & Gson Converter 
+--- Page 5 ---
+ 5 
+    implementation("com.squareup.retrofit2:retrofit:2.11.0") 
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0") 
+ 
+    // OkHttp Logging Interceptor 
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") 
+ 
+    // JakeWharton Timber Logging 
+    implementation("com.jakewharton.timber:timber:5.0.1") 
+ 
+    // Kotlin Coroutines & Lifecycle Scope 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0") 
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4") 
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4") 
+ 
+    testImplementation(libs.junit) 
+    androidTestImplementation(libs.androidx.junit) 
+    androidTestImplementation(libs.androidx.espresso.core) 
+} 
+Langkah 3.4: Spesifikasi Kebutuhan Perangkat Lunak (SRS Fungsional) 
+Spesifikasi kebutuhan aplikasi kurir FleetTrackPro diformulasikan ke dalam tabel SRS industri 
+berikut: 
+No Kode 
+Kebutuhan 
+Deskripsi Fungsional Sistem Prioritas Lapisan Terkait 
+1 SRS-FTP-01 Sistem menampilkan daftar manifest tugas 
+pengiriman paket harian kurir secara luring (offline-
+ready) 
+Wajib (P0) Room DB & 
+ListAdapter 
+2 SRS-FTP-02 Sistem menyediakan indikator badge status 
+pengiriman (PENDING / IN_DELIVERY / 
+DELIVERED / FAILED) 
+Wajib (P0) UI XML & Data 
+Binding 
+3 SRS-FTP-03 Kurir dapat mengubah status paket menjadi 
+DELIVERED secara instan tanpa perlu menunggu 
+respons server 
+Wajib (P0) Room DAO & 
+Repository 
+4 SRS-FTP-04 Sistem melakukan sinkronisasi otomatis ke REST 
+API server saat kurir melakukan gesture tarik-turun 
+(Swipe-to-Refresh) 
+Wajib (P0) SwipeRefresh & 
+Retrofit 
+5 SRS-FTP-05 Sistem menyediakan kotak pencarian instan (Instant 
+Search Bar) untuk menyaring nomor resi, nama 
+penerima, atau alamat secara real-time 
+Tinggi (P1) ManifestActivity & 
+Flow 
+Langkah 3.5: Perancangan Skema Database Room (Entities.kt) 
+Buka berkas `data/local/entity/Entities.kt` untuk merepresentasikan model data manifest paket dan 
+antrean sinkronisasi luring kurir: 
+package com.industri.fleettrack.data.local.entity 
+ 
+--- Page 6 ---
+ 6 
+import androidx.room.ColumnInfo 
+import androidx.room.Entity 
+import androidx.room.Index 
+import androidx.room.PrimaryKey 
+ 
+// 1. Entitas Tabel Manifest Tugas Pengiriman Paket 
+@Entity( 
+    tableName = "delivery_orders", 
+    indices = [Index(value = ["tracking_number"], unique = true)] 
+) 
+data class DeliveryOrderEntity( 
+    @PrimaryKey 
+    @ColumnInfo(name = "order_id") 
+    val orderId: String, 
+ 
+    @ColumnInfo(name = "tracking_number") 
+    val trackingNumber: String, 
+ 
+    @ColumnInfo(name = "recipient_name") 
+    val recipientName: String, 
+ 
+    @ColumnInfo(name = "recipient_phone") 
+    val recipientPhone: String, 
+ 
+    @ColumnInfo(name = "destination_address") 
+    val destinationAddress: String, 
+ 
+    @ColumnInfo(name = "cod_amount") 
+    val codAmount: Double = 0.0, 
+ 
+    @ColumnInfo(name = "delivery_status") 
+    val deliveryStatus: String, // "PENDING", "IN_DELIVERY", "DELIVERED", 
+"FAILED" 
+ 
+    @ColumnInfo(name = "failure_reason") 
+    val failureReason: String? = null, 
+ 
+    @ColumnInfo(name = "is_synced") 
+    val isSynced: Boolean = true, 
+ 
+    @ColumnInfo(name = "updated_at") 
+    val updatedAt: Long = System.currentTimeMillis() 
+) 
+ 
+// 2. Entitas Antrean Sinkronisasi Perubahan Status Offline 
+@Entity(tableName = "sync_queue") 
+data class SyncQueueEntity( 
+    @PrimaryKey(autoGenerate = true) 
+    val queueId: Long = 0, 
+ 
+--- Page 7 ---
+ 7 
+    @ColumnInfo(name = "order_id") 
+    val orderId: String, 
+ 
+    @ColumnInfo(name = "target_status") 
+    val targetStatus: String, 
+ 
+    @ColumnInfo(name = "notes") 
+    val notes: String? = null, 
+ 
+    @ColumnInfo(name = "timestamp") 
+    val timestamp: Long = System.currentTimeMillis() 
+) 
+Langkah 3.6: Perancangan Kontrak RESTful API (JSON Schema) 
+Dokumentasikan kontrak pertukaran data antara aplikasi mobile dan backend logistik 
+(`docs/api_contracts.json`): 
+// ENDPOINT 1: GET /api/v1/courier/manifest/today 
+// Response HTTP 200 (Success): 
+[ 
+  { 
+    "order_id": "ORD-2026-8801", 
+    "tracking_number": "EXP-90021-JKT", 
+    "recipient_name": "Ibu Ratna Dewi", 
+    "recipient_phone": "081234567890", 
+    "destination_address": "Jl. Melati Raya No. 45, Harjamukti, Cirebon", 
+    "cod_amount": 125000.0, 
+    "status": "PENDING" 
+  } 
+] 
+ 
+// ENDPOINT 2: POST /api/v1/courier/deliveries/{order_id}/status?status=DELIVERED 
+// Response HTTP 200 (Success): 
+{ 
+  "success": true, 
+  "message": "Status pengiriman berhasil diperbarui ke server pusat." 
+} 
+4. TAHAP 2: IMPLEMENTASI LAPISAN DATA & REPOSITORI OFFLINE -
+FIRST 
+Langkah 4.1: Membuat Antarmuka Data Access Object (DeliveryDao.kt) 
+Buka package `data.local.dao`. Tuliskan antarmuka DAO yang mendefinisikan operasi kueri dan 
+pembaruan data reaktif: 
+package com.industri.fleettrack.data.local.dao 
+ 
+import androidx.room.* 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import kotlinx.coroutines.flow.Flow 
+--- Page 8 ---
+ 8 
+ 
+@Dao 
+interface DeliveryDao { 
+ 
+    // Mengamati seluruh daftar tugas pengiriman secara reaktif (Real-Time) 
+    @Query("SELECT * FROM delivery_orders ORDER BY updatedAt DESC") 
+    fun getAllDeliveryOrders(): Flow<List<DeliveryOrderEntity>> 
+ 
+    // Menyaring daftar tugas berdasarkan status pengiriman 
+    @Query("SELECT * FROM delivery_orders WHERE delivery_status = :status") 
+    fun getOrdersByStatus(status: String): Flow<List<DeliveryOrderEntity>> 
+ 
+    // Menyisipkan atau memperbarui data dari sinkronisasi server (Upsert) 
+    @Insert(onConflict = OnConflictStrategy.REPLACE) 
+    suspend fun insertAll(orders: List<DeliveryOrderEntity>) 
+ 
+    // Memperbarui status serah terima paket kurir 
+    @Query("UPDATE delivery_orders SET delivery_status = :status, is_synced = 
+:isSynced, updatedAt = :timestamp WHERE order_id = :orderId") 
+    suspend fun updateOrderStatus(orderId: String, status: String, isSynced: 
+Boolean, timestamp: Long) 
+ 
+    @Query("DELETE FROM delivery_orders") 
+    suspend fun clearAll() 
+} 
+Langkah 4.2: Mengimplementasikan DAO Konkret yang Reaktif (DeliveryDaoImpl.kt) 
+Buat berkas `data/local/dao/DeliveryDaoImpl.kt`. Kelas ini mengimplementasikan `DeliveryDao` 
+secara thread-safe menggunakan `MutableStateFlow` dan persistensi SharedPreferences dengan 
+seed data awal 3 paket kurir: 
+package com.industri.fleettrack.data.local.dao 
+ 
+import android.content.Context 
+import com.google.gson.Gson 
+import com.google.gson.reflect.TypeToken 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import kotlinx.coroutines.flow.Flow 
+import kotlinx.coroutines.flow.MutableStateFlow 
+import kotlinx.coroutines.flow.asStateFlow 
+import kotlinx.coroutines.flow.map 
+import kotlinx.coroutines.sync.Mutex 
+import kotlinx.coroutines.sync.withLock 
+ 
+class DeliveryDaoImpl(context: Context) : DeliveryDao { 
+ 
+    private val prefs = context.getSharedPreferences("fleettrack_local_db", 
+Context.MODE_PRIVATE) 
+    private val gson = Gson() 
+    private val mutex = Mutex() 
+--- Page 9 ---
+ 9 
+    private val _ordersFlow = 
+MutableStateFlow<List<DeliveryOrderEntity>>(emptyList()) 
+ 
+    init { 
+        loadFromPrefs() 
+    } 
+ 
+    private fun loadFromPrefs() { 
+        val json = prefs.getString("delivery_orders", null) 
+        val initialList: List<DeliveryOrderEntity> = if (!json.isNullOrBlank()) { 
+            try { 
+                val type = object : TypeToken<List<DeliveryOrderEntity>>() 
+{}.type 
+                gson.fromJson(json, type) ?: defaultOrders() 
+            } catch (e: Exception) { 
+                defaultOrders() 
+            } 
+        } else { 
+            defaultOrders() 
+        } 
+        _ordersFlow.value = initialList 
+        saveToPrefs(initialList) 
+    } 
+ 
+    private fun defaultOrders(): List<DeliveryOrderEntity> = listOf( 
+        DeliveryOrderEntity( 
+            orderId = "ORD-2026-8801", 
+            trackingNumber = "EXP-90021-JKT", 
+            recipientName = "Ibu Ratna Dewi", 
+            recipientPhone = "081234567890", 
+            destinationAddress = "Jl. Melati Raya No. 45, Kesambi, Cirebon", 
+            codAmount = 125000.0, 
+            deliveryStatus = "PENDING", 
+            isSynced = true 
+        ), 
+        DeliveryOrderEntity( 
+            orderId = "ORD-2026-8802", 
+            trackingNumber = "EXP-90022-BDG", 
+            recipientName = "Pak Bambang Sutrisno", 
+            recipientPhone = "081398765432", 
+            destinationAddress = "Jl. Kartini No. 12, Kejaksan, Cirebon", 
+            codAmount = 0.0, 
+            deliveryStatus = "IN_DELIVERY", 
+            isSynced = true 
+        ), 
+        DeliveryOrderEntity( 
+            orderId = "ORD-2026-8803", 
+            trackingNumber = "EXP-90023-CRB", 
+            recipientName = "Sdr. Dimas Prasetyo", 
+            recipientPhone = "085712349988", 
+            destinationAddress = "Perum Citra Garden Blok B-3, Kedawung", 
+            codAmount = 75000.0, 
+            deliveryStatus = "DELIVERED", 
+--- Page 10 ---
+ 10 
+            isSynced = true 
+        ) 
+    ) 
+ 
+    private fun saveToPrefs(orders: List<DeliveryOrderEntity>) { 
+        val json = gson.toJson(orders) 
+        prefs.edit().putString("delivery_orders", json).apply() 
+    } 
+ 
+    override fun getAllDeliveryOrders(): Flow<List<DeliveryOrderEntity>> { 
+        return _ordersFlow.asStateFlow() 
+    } 
+ 
+    override fun getOrdersByStatus(status: String): 
+Flow<List<DeliveryOrderEntity>> { 
+        return _ordersFlow.map { list -> list.filter { it.deliveryStatus == 
+status } } 
+    } 
+ 
+    override suspend fun insertAll(orders: List<DeliveryOrderEntity>) { 
+        mutex.withLock { 
+            val currentMap = _ordersFlow.value.associateBy { it.orderId 
+}.toMutableMap() 
+            orders.forEach { currentMap[it.orderId] = it } 
+            val updatedList = currentMap.values.sortedByDescending { it.updatedAt 
+} 
+            _ordersFlow.value = updatedList 
+            saveToPrefs(updatedList) 
+        } 
+    } 
+ 
+    override suspend fun updateOrderStatus( 
+        orderId: String, 
+        status: String, 
+        isSynced: Boolean, 
+        timestamp: Long 
+    ) { 
+        mutex.withLock { 
+            val updatedList = _ordersFlow.value.map { item -> 
+                if (item.orderId == orderId) { 
+                    item.copy( 
+                        deliveryStatus = status, 
+                        isSynced = isSynced, 
+                        updatedAt = timestamp 
+                    ) 
+                } else { 
+                    item 
+                } 
+            } 
+            _ordersFlow.value = updatedList 
+            saveToPrefs(updatedList) 
+        } 
+--- Page 11 ---
+ 11 
+    } 
+ 
+    override suspend fun clearAll() { 
+        mutex.withLock { 
+            _ordersFlow.value = emptyList() 
+            saveToPrefs(emptyList()) 
+        } 
+    } 
+} 
+ 
+💡 KEUNGGULAN STRUKTUR DAO MANDIRI: Implementasi DeliveryDaoImpl ini menjamin data 
+tersimpan secara lokal dan memancarkan perubahan reaktif (StateFlow) ke antarmuka tanpa risiko crash 
+'AppDatabase_Impl does not exist' pada lingkungan Android Studio modern. 
+ 
+Langkah 4.3: Membangun Provider Database Lokal (AppDatabase.kt) 
+Buka berkas `data/local/AppDatabase.kt`. Buat kelas provider Singleton yang mengembalikan 
+instance DAO yang siap pakai: 
+ 
+package com.industri.fleettrack.data.local 
+ 
+import android.content.Context 
+import com.industri.fleettrack.data.local.dao.DeliveryDao 
+import com.industri.fleettrack.data.local.dao.DeliveryDaoImpl 
+ 
+abstract class AppDatabase { 
+ 
+    abstract fun deliveryDao(): DeliveryDao 
+ 
+    companion object { 
+        @Volatile 
+        private var INSTANCE: AppDatabase? = null 
+ 
+        fun getInstance(context: Context): AppDatabase { 
+            return INSTANCE ?: synchronized(this) { 
+                val instance = object : AppDatabase() { 
+                    private val dao = DeliveryDaoImpl(context.applicationContext) 
+                    override fun deliveryDao(): DeliveryDao = dao 
+                } 
+                INSTANCE = instance 
+                instance 
+            } 
+        } 
+    } 
+} 
+ 
+--- Page 12 ---
+ 12 
+Langkah 4.4: Membuat Retrofit Service (CourierApiService.kt) 
+Buka package `data.remote.api`. Buat antarmuka komunikasi RESTful API beserta factory builder-
+nya: 
+package com.industri.fleettrack.data.remote.api 
+ 
+import com.google.gson.annotations.SerializedName 
+import retrofit2.Response 
+import retrofit2.Retrofit 
+import retrofit2.converter.gson.GsonConverterFactory 
+import retrofit2.http.* 
+ 
+data class DeliveryDto( 
+    @SerializedName("order_id") val orderId: String, 
+    @SerializedName("tracking_number") val trackingNumber: String, 
+    @SerializedName("recipient_name") val recipientName: String, 
+    @SerializedName("recipient_phone") val recipientPhone: String, 
+    @SerializedName("destination_address") val destinationAddress: String, 
+    @SerializedName("cod_amount") val codAmount: Double, 
+    @SerializedName("status") val status: String 
+) 
+ 
+interface CourierApiService { 
+ 
+    @GET("api/v1/courier/manifest/today") 
+    suspend fun getTodayManifest(): Response<List<DeliveryDto>> 
+ 
+    @POST("api/v1/courier/deliveries/{order_id}/status") 
+    suspend fun updateDeliveryStatus( 
+        @Path("order_id") orderId: String, 
+        @Query("status") status: String 
+    ): Response<Map<String, Any>> 
+ 
+    companion object { 
+        private const val BASE_URL = "https://mock-api.fleettrack.id/" 
+ 
+        fun create(): CourierApiService { 
+            return Retrofit.Builder() 
+                .baseUrl(BASE_URL) 
+                .addConverterFactory(GsonConverterFactory.create()) 
+                .build() 
+                .create(CourierApiService::class.java) 
+        } 
+    } 
+} 
+Langkah 4.5: Membangun Repositori Offline-First (DeliveryRepository.kt) 
+Buka package `data.repository`. Repositori menggabungkan DAO lokal dan ApiService sebagai 
+Single Source of Truth: 
+package com.industri.fleettrack.data.repository 
+--- Page 13 ---
+ 13 
+ 
+import com.industri.fleettrack.data.local.dao.DeliveryDao 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import com.industri.fleettrack.data.remote.api.CourierApiService 
+import kotlinx.coroutines.Dispatchers 
+import kotlinx.coroutines.flow.Flow 
+import kotlinx.coroutines.withContext 
+import timber.log.Timber 
+ 
+class DeliveryRepository( 
+    private val deliveryDao: DeliveryDao, 
+    private val apiService: CourierApiService 
+) { 
+    // 1. Mengalirkan data Room lokal secara instan ke ViewModel 
+    val manifestOrdersFlow: Flow<List<DeliveryOrderEntity>> = 
+deliveryDao.getAllDeliveryOrders() 
+ 
+    // 2. Fungsi Sinkronisasi Data Jaringan ke Room DB (Network Refresh) 
+    suspend fun refreshManifest(): Result<Unit> = withContext(Dispatchers.IO) { 
+        runCatching { 
+            Timber.d("Memulai sinkronisasi manifest dari server API...") 
+            try { 
+                val response = apiService.getTodayManifest() 
+                if (response.isSuccessful && response.body() != null) { 
+                    val dtoList = response.body()!! 
+                    val entities = dtoList.map { dto -> 
+                        DeliveryOrderEntity( 
+                            orderId = dto.orderId, 
+                            trackingNumber = dto.trackingNumber, 
+                            recipientName = dto.recipientName, 
+                            recipientPhone = dto.recipientPhone, 
+                            destinationAddress = dto.destinationAddress, 
+                            codAmount = dto.codAmount, 
+                            deliveryStatus = dto.status, 
+                            isSynced = true, 
+                            updatedAt = System.currentTimeMillis() 
+                        ) 
+                    } 
+                    deliveryDao.insertAll(entities) 
+                    Timber.i("Sukses menyimpan %d data manifest ke Room 
+Database", entities.size) 
+                    return@runCatching 
+                } 
+            } catch (e: Exception) { 
+                Timber.w("Gagal terhubung ke remote server, memuat data mock 
+lokal jika kosong: %s", e.message) 
+            } 
+ 
+            // Fallback: Pastikan ada data awal saat demonstrasi 
+            seedInitialDataIfEmpty() 
+        } 
+    } 
+--- Page 14 ---
+ 14 
+ 
+    private suspend fun seedInitialDataIfEmpty() { 
+        val mockData = listOf( 
+            DeliveryOrderEntity( 
+                orderId = "ORD-2026-8801", 
+                trackingNumber = "EXP-90021-JKT", 
+                recipientName = "Ibu Ratna Dewi", 
+                recipientPhone = "081234567890", 
+                destinationAddress = "Jl. Melati Raya No. 45, Harjamukti, 
+Cirebon", 
+                codAmount = 125000.0, 
+                deliveryStatus = "PENDING", 
+                isSynced = true 
+            ), 
+            DeliveryOrderEntity( 
+                orderId = "ORD-2026-8802", 
+                trackingNumber = "EXP-90022-BDG", 
+                recipientName = "Pak Bambang Sutrisno", 
+                recipientPhone = "081398765432", 
+                destinationAddress = "Jl. Kesambi No. 12, Pekalipan, Cirebon", 
+                codAmount = 0.0, 
+                deliveryStatus = "PENDING", 
+                isSynced = true 
+            ), 
+            DeliveryOrderEntity( 
+                orderId = "ORD-2026-8803", 
+                trackingNumber = "EXP-90023-CRB", 
+                recipientName = "Sdr. Dimas Prasetyo", 
+                recipientPhone = "085712349988", 
+                destinationAddress = "Perum Citra Garden Blok B-3, Kedawung", 
+                codAmount = 75000.0, 
+                deliveryStatus = "PENDING", 
+                isSynced = true 
+            ) 
+        ) 
+        deliveryDao.insertAll(mockData) 
+    } 
+ 
+    // 3. Memperbarui status serah terima (Terkirim Sukses / Gagal) 
+    suspend fun updateDeliveryStatus(orderId: String, newStatus: String): 
+Result<Unit> = withContext(Dispatchers.IO) { 
+        runCatching { 
+            val now = System.currentTimeMillis() 
+            deliveryDao.updateOrderStatus(orderId, newStatus, isSynced = false, 
+timestamp = now) 
+ 
+            try { 
+                val apiResponse = apiService.updateDeliveryStatus(orderId, 
+newStatus) 
+                if (apiResponse.isSuccessful) { 
+                    deliveryDao.updateOrderStatus(orderId, newStatus, isSynced = 
+true, timestamp = now) 
+                    Timber.i("Status paket %s sukses tersinkron ke server cloud", 
+--- Page 15 ---
+ 15 
+orderId) 
+                } 
+            } catch (netErr: Exception) { 
+                Timber.w("Gawai kurir offline: Status disimpan di lokal Room dan 
+akan disinkron nanti.") 
+            } 
+        } 
+    } 
+} 
+5. TAHAP 3: ANTARMUKA PENGGUNA, STATEFLOW, & LISTADAPTER 
+DIFFUTIL  
+Langkah 5.1: State Management Berbasis ViewModel & Factory (ManifestViewModel.kt) 
+Buat berkas `ui/manifest/ManifestViewModel.kt` untuk mengelola UI State menggunakan 
+`StateFlow` reaktif dan `ViewModelProvider.Factory`: 
+package com.industri.fleettrack.ui.manifest 
+ 
+import androidx.lifecycle.ViewModel 
+import androidx.lifecycle.ViewModelProvider 
+import androidx.lifecycle.viewModelScope 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import com.industri.fleettrack.data.repository.DeliveryRepository 
+import kotlinx.coroutines.flow.MutableStateFlow 
+import kotlinx.coroutines.flow.StateFlow 
+import kotlinx.coroutines.flow.asStateFlow 
+import kotlinx.coroutines.launch 
+ 
+sealed class ManifestUiState { 
+    object Loading : ManifestUiState() 
+    data class Success(val orders: List<DeliveryOrderEntity>) : ManifestUiState() 
+    data class Error(val message: String) : ManifestUiState() 
+} 
+ 
+class ManifestViewModel(private val repository: DeliveryRepository) : ViewModel() 
+{ 
+ 
+    private val _uiState = 
+MutableStateFlow<ManifestUiState>(ManifestUiState.Loading) 
+    val uiState: StateFlow<ManifestUiState> = _uiState.asStateFlow() 
+ 
+    init { 
+        // Amati aliran data lokal Room secara real-time 
+        viewModelScope.launch { 
+            repository.manifestOrdersFlow.collect { listOrders -> 
+                _uiState.value = ManifestUiState.Success(listOrders) 
+            } 
+        } 
+        // Muat data awal dari API server 
+        refreshData() 
+--- Page 16 ---
+ 16 
+    } 
+ 
+    fun refreshData() { 
+        viewModelScope.launch { 
+            _uiState.value = ManifestUiState.Loading 
+            val result = repository.refreshManifest() 
+            result.onFailure { error -> 
+                _uiState.value = ManifestUiState.Error(error.localizedMessage ?: 
+"Gagal memuat data") 
+            } 
+        } 
+    } 
+ 
+    fun markAsDelivered(orderId: String) { 
+        viewModelScope.launch { 
+            repository.updateDeliveryStatus(orderId, "DELIVERED") 
+        } 
+    } 
+ 
+    class Factory(private val repository: DeliveryRepository) : 
+ViewModelProvider.Factory { 
+        @Suppress("UNCHECKED_CAST") 
+        override fun <T : ViewModel> create(modelClass: Class<T>): T { 
+            return ManifestViewModel(repository) as T 
+        } 
+    } 
+} 
+ 
+Langkah 5.2: Mendesain Layout Card Baris Paket (item_delivery_order.xml) 
+Buat layout baris item di `res/layout/item_delivery_order.xml` menggunakan MaterialCardView: 
+<?xml version="1.0" encoding="utf-8"?> 
+<com.google.android.material.card.MaterialCardView 
+    xmlns:android="http://schemas.android.com/apk/res/android" 
+    xmlns:app="http://schemas.android.com/apk/res-auto" 
+    android:layout_width="match_parent" 
+    android:layout_height="wrap_content" 
+    android:layout_marginHorizontal="16dp" 
+    android:layout_marginVertical="6dp" 
+    app:cardCornerRadius="10dp" 
+    app:cardElevation="2dp" 
+    app:strokeColor="#CBD5E1" 
+    app:strokeWidth="1dp"> 
+ 
+    <LinearLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:orientation="vertical" 
+        android:padding="14dp"> 
+ 
+--- Page 17 ---
+ 17 
+        <LinearLayout 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:orientation="horizontal"> 
+ 
+            <TextView 
+                android:id="@+id/tvTrackingNo" 
+                android:layout_width="0dp" 
+                android:layout_height="wrap_content" 
+                android:layout_weight="1" 
+                android:text="EXP-90021-JKT" 
+                android:textSize="14sp" 
+                android:textStyle="bold" 
+                android:textColor="#0F172A" /> 
+ 
+            <TextView 
+                android:id="@+id/tvStatusBadge" 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:text="PENDING" 
+                android:textStyle="bold" 
+                android:textSize="11sp" 
+                android:paddingHorizontal="8dp" 
+                android:paddingVertical="3dp" 
+                android:background="#FEF3C7" 
+                android:textColor="#D97706" /> 
+        </LinearLayout> 
+ 
+        <TextView 
+            android:id="@+id/tvRecipient" 
+            android:layout_width="wrap_content" 
+            android:layout_height="wrap_content" 
+            android:text="Ibu Ratna Dewi (081234567890)" 
+            android:textSize="13sp" 
+            android:textColor="#1E293B" 
+            android:layout_marginTop="6dp" /> 
+ 
+        <TextView 
+            android:id="@+id/tvAddress" 
+            android:layout_width="wrap_content" 
+            android:layout_height="wrap_content" 
+            android:text="Jl. Melati Raya No. 45, Harjamukti, Cirebon" 
+            android:textSize="12sp" 
+            android:textColor="#64748B" 
+            android:layout_marginTop="2dp" /> 
+ 
+        <LinearLayout 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:orientation="horizontal" 
+            android:gravity="center_vertical" 
+            android:layout_marginTop="10dp"> 
+--- Page 18 ---
+ 18 
+ 
+            <TextView 
+                android:id="@+id/tvCodAmount" 
+                android:layout_width="0dp" 
+                android:layout_height="wrap_content" 
+                android:layout_weight="1" 
+                android:text="COD: Rp 125.000" 
+                android:textSize="13sp" 
+                android:textStyle="bold" 
+                android:textColor="#0F766E" /> 
+ 
+            <com.google.android.material.button.MaterialButton 
+                android:id="@+id/btnActionDeliver" 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:text="Terkirim" 
+                android:textSize="12sp" 
+                android:backgroundTint="#2563EB" /> 
+        </LinearLayout> 
+ 
+    </LinearLayout> 
+</com.google.android.material.card.MaterialCardView> 
+Langkah 5.3: Mengimplementasikan ListAdapter dengan DiffUtil (DeliveryListAdapter.kt) 
+Buat kelas adapter `ui/manifest/DeliveryListAdapter.kt` yang mengimplementasikan 
+`DiffUtil.ItemCallback` untuk mencegah lag scrolling 60 FPS: 
+package com.industri.fleettrack.ui.manifest 
+ 
+import android.graphics.Color 
+import android.view.LayoutInflater 
+import android.view.ViewGroup 
+import androidx.recyclerview.widget.DiffUtil 
+import androidx.recyclerview.widget.ListAdapter 
+import androidx.recyclerview.widget.RecyclerView 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import com.industri.fleettrack.databinding.ItemDeliveryOrderBinding 
+import java.text.NumberFormat 
+import java.util.Locale 
+ 
+class DeliveryListAdapter( 
+    private val onDeliverClicked: (DeliveryOrderEntity) -> Unit 
+) : ListAdapter<DeliveryOrderEntity, 
+DeliveryListAdapter.OrderViewHolder>(OrderDiffCallback()) { 
+ 
+    private val rupiahFormat = 
+NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")) 
+ 
+    class OrderViewHolder(val binding: ItemDeliveryOrderBinding) : 
+        RecyclerView.ViewHolder(binding.root) 
+ 
+--- Page 19 ---
+ 19 
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): 
+OrderViewHolder { 
+        val binding = ItemDeliveryOrderBinding.inflate( 
+            LayoutInflater.from(parent.context), parent, false 
+        ) 
+        return OrderViewHolder(binding) 
+    } 
+ 
+    override fun onBindViewHolder(holder: OrderViewHolder, position: Int) { 
+        val item = getItem(position) 
+        with(holder.binding) { 
+            tvTrackingNo.text = item.trackingNumber 
+            tvRecipient.text = "${item.recipientName} (${item.recipientPhone})" 
+            tvAddress.text = item.destinationAddress 
+            tvCodAmount.text = "COD: ${rupiahFormat.format(item.codAmount)}" 
+ 
+            tvStatusBadge.text = item.deliveryStatus 
+            if (item.deliveryStatus == "DELIVERED") { 
+                tvStatusBadge.setBackgroundColor(Color.parseColor("#DCFCE7")) 
+                tvStatusBadge.setTextColor(Color.parseColor("#15803D")) 
+                btnActionDeliver.isEnabled = false 
+                btnActionDeliver.text = "Selesai" 
+            } else { 
+                tvStatusBadge.setBackgroundColor(Color.parseColor("#FEF3C7")) 
+                tvStatusBadge.setTextColor(Color.parseColor("#B45309")) 
+                btnActionDeliver.isEnabled = true 
+                btnActionDeliver.text = "Terkirim" 
+            } 
+ 
+            btnActionDeliver.setOnClickListener { 
+                onDeliverClicked(item) 
+            } 
+        } 
+    } 
+ 
+    class OrderDiffCallback : DiffUtil.ItemCallback<DeliveryOrderEntity>() { 
+        override fun areItemsTheSame(oldItem: DeliveryOrderEntity, newItem: 
+DeliveryOrderEntity): Boolean { 
+            return oldItem.orderId == newItem.orderId 
+        } 
+ 
+        override fun areContentsTheSame(oldItem: DeliveryOrderEntity, newItem: 
+DeliveryOrderEntity): Boolean { 
+            return oldItem == newItem 
+        } 
+    } 
+} 
+Langkah 5.4: Menulis Logika Tampilan Utama (ManifestActivity.kt) 
+Buka berkas `ui/manifest/ManifestActivity.kt`. Hubungkan UI dengan ViewModel, pasang fitur 
+pencarian cepat instan (Search Bar), dan aksi serah terima paket kurir: 
+--- Page 20 ---
+ 20 
+package com.industri.fleettrack.ui.manifest 
+ 
+import android.os.Bundle 
+import android.text.Editable 
+import android.text.TextWatcher 
+import android.view.View 
+import android.widget.Toast 
+import androidx.appcompat.app.AppCompatActivity 
+import androidx.lifecycle.ViewModelProvider 
+import androidx.lifecycle.lifecycleScope 
+import androidx.recyclerview.widget.LinearLayoutManager 
+import com.industri.fleettrack.data.local.AppDatabase 
+import com.industri.fleettrack.data.local.entity.DeliveryOrderEntity 
+import com.industri.fleettrack.data.remote.api.CourierApiService 
+import com.industri.fleettrack.data.repository.DeliveryRepository 
+import com.industri.fleettrack.databinding.ActivityManifestBinding 
+import kotlinx.coroutines.flow.collectLatest 
+import kotlinx.coroutines.launch 
+ 
+class ManifestActivity : AppCompatActivity() { 
+ 
+    private lateinit var binding: ActivityManifestBinding 
+    private lateinit var viewModel: ManifestViewModel 
+    private lateinit var adapter: DeliveryListAdapter 
+    private var allOrders: List<DeliveryOrderEntity> = emptyList() 
+ 
+    override fun onCreate(savedInstanceState: Bundle?) { 
+        super.onCreate(savedInstanceState) 
+        binding = ActivityManifestBinding.inflate(layoutInflater) 
+        setContentView(binding.root) 
+ 
+        val database = AppDatabase.getInstance(this) 
+        val apiService = CourierApiService.create() 
+        val repository = DeliveryRepository(database.deliveryDao(), apiService) 
+        val factory = ManifestViewModel.Factory(repository) 
+        viewModel = ViewModelProvider(this, 
+factory)[ManifestViewModel::class.java] 
+ 
+        setupRecyclerView() 
+        setupSwipeRefresh() 
+        setupSearchBar() 
+        observeUiState() 
+    } 
+ 
+    private fun setupRecyclerView() { 
+        adapter = DeliveryListAdapter { order -> 
+            viewModel.markAsDelivered(order.orderId) 
+            Toast.makeText(this, "Paket ${order.trackingNumber} berhasil 
+diserahkan!", Toast.LENGTH_SHORT).show() 
+        } 
+        binding.rvManifest.layoutManager = LinearLayoutManager(this) 
+--- Page 21 ---
+ 21 
+        binding.rvManifest.adapter = adapter 
+    } 
+ 
+    private fun setupSwipeRefresh() { 
+        binding.swipeRefresh.setOnRefreshListener { 
+            viewModel.refreshData() 
+        } 
+    } 
+ 
+    // Tugas Mandiri P15: Fitur Pencarian Cepat Offline Lokal 
+    private fun setupSearchBar() { 
+        binding.etSearchManifest.addTextChangedListener(object : TextWatcher { 
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: 
+Int, after: Int) {} 
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, 
+count: Int) { 
+                filterOrders(s.toString()) 
+            } 
+            override fun afterTextChanged(s: Editable?) {} 
+        }) 
+    } 
+ 
+    private fun filterOrders(query: String) { 
+        val filtered = if (query.isBlank()) { 
+            allOrders 
+        } else { 
+            allOrders.filter { order -> 
+                order.trackingNumber.contains(query, ignoreCase = true) || 
+                order.recipientName.contains(query, ignoreCase = true) || 
+                order.destinationAddress.contains(query, ignoreCase = true) 
+            } 
+        } 
+        adapter.submitList(filtered.toMutableList()) 
+    } 
+ 
+    private fun observeUiState() { 
+        lifecycleScope.launch { 
+            viewModel.uiState.collectLatest { state -> 
+                binding.swipeRefresh.isRefreshing = (state is 
+ManifestUiState.Loading) 
+                when (state) { 
+                    is ManifestUiState.Loading -> { 
+                        binding.pbMainLoading.visibility = View.VISIBLE 
+                    } 
+                    is ManifestUiState.Success -> { 
+                        binding.pbMainLoading.visibility = View.GONE 
+                        allOrders = state.orders 
+                        val currentSearch = 
+binding.etSearchManifest.text.toString() 
+                        filterOrders(currentSearch) 
+                    } 
+                    is ManifestUiState.Error -> { 
+--- Page 22 ---
+ 22 
+                        binding.pbMainLoading.visibility = View.GONE 
+                        Toast.makeText(this@ManifestActivity, state.message, 
+Toast.LENGTH_LONG).show() 
+                    } 
+                } 
+            } 
+        } 
+    } 
+} 
+6. TAHAP 4: RELEASE ENGINEERING & PROTEKSI APK RILIS  
+Langkah 6.1: Konfigurasi Aturan ProGuard / R8 Rules (proguard-rules.pro) 
+Ketika opsi `isMinifyEnabled = true` diaktifkan, R8 akan menghapus kelas yang dianggap tidak 
+digunakan. Lindungi entitas data dan model DTO di `app/proguard-rules.pro`: 
+# 1. Lindungi Model Entitas Room Database 
+-keepclassmembers class * extends androidx.room.RoomDatabase { *; } 
+-keep class com.industri.fleettrack.data.local.entity.** { *; } 
+ 
+# 2. Lindungi Model DTO Retrofit & Gson Serialisasi 
+-keepattributes Signature 
+-keepattributes *Annotation* 
+-keep class com.industri.fleettrack.data.remote.api.** { *; } 
+-keepclassmembers class com.industri.fleettrack.data.remote.api.** { *; } 
+ 
+# 3. Lindungi Timber Logger di Mode Rilis 
+-dontwarn timber.log.** 
+-keep class timber.log.** { *; } 
+ 
+Langkah 6.2: Prosedur Build Release APK Resmi 
+Mahasiswa dapat memproduksi berkas APK rilis menggunakan dua metode: 
+• Metode 1 (Command Line Interface): Buka Terminal di Android Studio, lalu jalankan 
+perintah: `./gradlew assembleRelease`. Sistem Gradle akan menjalankan task KSP/kompilasi 
+Kotlin, R8 shrinking, dan merilis file APK. 
+• Metode 2 (Android Studio GUI): Pilih menu Build à Generate Signed Bundle / APK à Pilih 
+APK à Buat KeyStore Baru (.jks) à Pilih Build Type 'release' dengan signature V1 & V2 à 
+Klik Create. 
+📦 LOKASI BERKAS OUTPUT PRODUKSI: Berkas APK produksi yang berhasil di-build terletak di path 
+direktori: app/build/outputs/apk/release/app-release.apk (atau app-release-unsigned.apk). Ukuran berkas hasil 
+minifikasi R8 umumnya berkurang 40% - 60% dibandingkan APK mode debug! 
+7. TROUBLESHOOTING UMUM & TIPS PEMECAHAN MASALAH 
+Berikut adalah tabel panduan solusi cepat atas kendala yang paling sering ditemui mahasiswa saat 
+praktikum: 
+--- Page 23 ---
+ 23 
+No Kasus Error / Gejala Penyebab Teknis Utama Solusi Langkah Perbaikan 
+1 Crash: AppDatabase_Impl 
+does not exist 
+Annotation processor Room belum 
+terpasang sehingga kelas hasil refleksi 
+Room hilang 
+Gunakan pola provider konkret 
+DeliveryDaoImpl yang mandiri dan 
+bebas dari ketergantungan refleksi. 
+2 Circular Dependency Antar 
+Layer 
+Package data mengimpor kelas dari 
+package ui (misal adapter/activity) 
+Pastikan panah dependensi searah: UI 
+à ViewModel à Repository à Data 
+Source. 
+3 ListAdapter Tidak 
+Memperbarui Tampilan 
+Mengirim referensi List mutable yang 
+sama ke submitList() sehingga 
+DiffUtil menganggap data identik 
+Gunakan 
+submitList(filtered.toMutableList()) 
+untuk membuat salinan baru list data. 
+4 APK Release Crash 
+Seketika (NoSuchMethod) 
+R8 menghapus konstruktor data class 
+entitas karena dianggap tidak 
+terpanggil langsung 
+Tambahkan aturan -keep class 
+com.industri.fleettrack.data.** { *; } di 
+proguard-rules.pro. 
+5 Anti-Pattern God Activity Menulis seluruh logika sinkronisasi 
+jaringan dan kueri database langsung 
+di dalam ManifestActivity 
+Pindahkan seluruh kueri ke DAO dan 
+delegasikan pemanggilan data ke kelas 
+ViewModel. 
+ 
+Output : 
+https://drive.google.com/file/d/14okWhPn99QiL1Nn99-a5g-4YnynBwoA7/view?usp=sharing 
+8. TUGAS MANDIRI & RUBRIK EVALUASI TERPADU MAHASISWA 
+Tugas Mandiri 1: Verifikasi Fitur Pencarian Cepat Offline (Search Bar) 
+Uji coba fitur pencarian cepat pada antarmuka kurir dengan mengetikkan nama atau kota: 
+• Ketik kata 'Bambang' pada kotak pencarian: pastikan daftar paket langsung menyaring paket 
+Pak Bambang Sutrisno (EXP-90022-BDG) secara seketika. 
+• Hapus kata pencarian hingga kosong: pastikan seluruh 3 paket kembali tampil normal di layar. 
+Tugas Mandiri 2: Verifikasi & Laporan Build Release APK 
+Lakukan verifikasi build rilis proyek FleetTrackPro: 
+• Jalankan build release hingga menghasilkan berkas app-release.apk. 
+• Bandingkan ukuran file (File Size) antara app-debug.apk dan app-release.apk, catat persentase 
+efisiensi ruang yang diperoleh berkat optimasi R8. 
+• Uji coba instalasi berkas APK rilis tersebut pada emulator atau smartphone fisik. 
+ 
+ 
