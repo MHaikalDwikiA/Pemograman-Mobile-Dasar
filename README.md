@@ -16,6 +16,7 @@ Silakan beralih ke *branch* yang sesuai untuk melihat implementasi kode sumber m
 | 4 | **Logistics Tracker App** | [`LogisticsTrackerApp`](../../tree/LogisticsTrackerApp) | Proyek direktori pencarian id barang dan kurir berbasis Android. |
 | 5 | **Fintech Billing App** | [`FintechBillingApp`](../../tree/FintechBillingApp) | Implementasi tampilan pembayaran berbasis Android. |
 | 6 | **Smart Retail POS** | [`SmartRetailPOS`](../../tree/SmartRetailPOS) | Error handling & Teknik Debugging Aplikasi Mobile. |
+| 7 | **Transport Booking QA** | [`TransportBookingQA`](../../tree/TransportBookingQA) | Pengujian Aplikasi Mobile & Penajaminan Mutu (QA). |
 
 ---
 
